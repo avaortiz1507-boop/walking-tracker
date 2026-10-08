@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Platform, Text, View, StyleSheet } from 'react-native';
 
 import * as Location from 'expo-location';
+import PermissionsButton from '../components/permissions-button';
 
 export default function WalkScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -17,6 +18,8 @@ export default function WalkScreen() {
       }
 
       let location = await Location.getCurrentPositionAsync({});
+      console.log('location', location);
+      const { latitude, longitude } = location.coords;
       setLocation(location);
     }
 
@@ -33,6 +36,7 @@ export default function WalkScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.paragraph}>{text}</Text>
+      <PermissionsButton />
     </View>
   );
 }
