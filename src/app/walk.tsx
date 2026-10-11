@@ -19,7 +19,6 @@ export default function WalkScreen() {
 
       let location = await Location.getCurrentPositionAsync({});
       console.log('location', location);
-      const { latitude, longitude } = location.coords;
       setLocation(location);
     }
 
@@ -30,13 +29,14 @@ export default function WalkScreen() {
   if (errorMsg) {
     text = errorMsg;
   } else if (location) {
-    text = JSON.stringify(location);
+    const { latitude, longitude } = location.coords;
+    text = `Latitude: ${latitude}, Longitude: ${longitude}`;
   }
 
   return (
     <View style={styles.container}>
+      <PermissionsButton title="Start Walk" />
       <Text style={styles.paragraph}>{text}</Text>
-      <PermissionsButton />
     </View>
   );
 }

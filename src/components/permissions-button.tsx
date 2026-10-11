@@ -1,7 +1,8 @@
 import React from 'react';
-import { Button, View, StyleSheet} from 'react-native';
+import { Button, View, StyleSheet, Platform} from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
+import { LocationAccuracy } from 'expo-location';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -9,20 +10,45 @@ const requestPermissions = async () => {
   const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
 
   console.log('foregroundStatus', foregroundStatus);
-  if (foregroundStatus === 'granted') {
-    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-    console.log('backgroundStatus', backgroundStatus);
-    if (backgroundStatus === 'granted') {
-      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-        accuracy: Location.Accuracy.Balanced,
-      });
+
+  if (foregroundStatus !== 'granted') {
+    return;
+  } 
+
+  // browsers 
+  console.log('Platform.OS', Platform.OS);
+  if (Platform.OS === 'web') {
+    
+    await Location.watchPositionAsync({
+      accuracy: LocationAccuracy.Balanced,
+    }, 
+    (location) => {
+      console.log('foreground location', location);
+    }
+  );
+  } else {
+    if (foregroundStatus === 'granted') {
+      const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+      console.log('backgroundStatus', backgroundStatus);
+
+      if (backgroundStatus === 'granted') {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
     }
   }
 };
+    
+const PermissionsButton = ({title}: {title?: string | null}) => (
 
-const PermissionsButton = () => (
   <View style={styles.container}>
-    <Button onPress={requestPermissions} title="Enable background location" />
+    <Button 
+      onPress={requestPermissions} 
+      title={
+        title ?? `Enable ${Platform.OS === 'web' ? 'foreground' : 'background'} location`
+      }
+    />
   </View>
 );
 
