@@ -1,10 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { useState, useSyncExternalStore } from "react";
 import { Button, FlatList, Platform, StyleSheet, Text, View } from "react-native";
 
 const LOCATION_TASK_NAME = "background-location-task";
-const PERMISSION_DENIED_MESSAGE = "Location access is required to use tracking.";
+const PERMISSION_DENIED_MESSAGE = "Location access is required to use the tracking features.";
+const RECORDS_KEY = "location-records";
 
 type State = {
   status: "idle" | "tracking" | "paused";
@@ -28,7 +30,15 @@ function subscribe(listener: () => void) {
 
 function update(patch: Partial<State>) {
   state = { ...state, ...patch };
+  if (patch.records) AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
   listeners.forEach((l) => l());
+}
+
+// Skipped during Expo's static web render, where `window` doesn't exist.
+if (typeof window !== "undefined") {
+  AsyncStorage.getItem(RECORDS_KEY).then((saved) => {
+    if (saved) update({ records: JSON.parse(saved) });
+  });
 }
 
 function addRecords(locations: Location.LocationObject[]) {
@@ -136,6 +146,11 @@ export default function LocationTracker() {
           : "No location yet"}
       </Text>
       <Text style={styles.text}>Status: {status}</Text>
+      <Text style={styles.notice}>
+        Warning:This app collects your latitude, longitude, date and time. Location data is
+        collected only while a walk is being tracked. Records are stored locally on your device.
+        You can pause or stop tracking at any time.
+      </Text>
       {errorMsg && <Text style={styles.text}>{errorMsg}</Text>}
 
       <View>
@@ -168,6 +183,10 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 18,
+    textAlign: "center",
+  },
+  notice: {
+    fontSize: 12,
     textAlign: "center",
   },
 });
