@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# Walking Tracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Walking Tracker is an Expo and React Native app for recording walks with device location. The Walk tab displays the current coordinates and a timestamped list of recorded location points.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Check the device's current location.
+- Start, pause, resume, and stop a walk.
+- Record latitude, longitude, and timestamp for each location update.
+- Save recorded location points to local device storage.
+- Track in the background on Android and iOS. On web, tracking runs while the page is active.
 
-   ```bash
-   npm install
-   ```
+The Home and Explore tabs currently contain Expo starter content.
 
-2. Start the app
+## Requirements
 
-   ```bash
-   npx expo start
-   ```
+- Node.js and npm
+- A device or simulator with location services for location tracking
 
-In the output, you'll find options to open the app in a
+## Getting started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Install dependencies and start the Expo development server:
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Use the terminal prompts to open the app in an Android emulator, iOS simulator, or web browser. To start a platform directly, use one of these commands:
 
-### Other setup steps
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Location permission must be granted to use tracking. Android and iOS request background location permission when a walk starts; web requests foreground location permission. Native background tracking may require a development build depending on the device and Expo environment.
 
-## Learn more
+## Privacy
 
-To learn more about developing your project with Expo, look at the following resources:
+Location is collected only when the user requests their current position or starts a walk. Each recorded point includes latitude, longitude, and time, and is stored locally on the device. The app currently does not upload this data to a server. Tracking can be paused or stopped in the Walk tab.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Development
 
-## Join the community
+Routes are defined in `src/app/`, and the location tracking implementation is in `src/components/location-tracker.tsx`.
 
-Join our community of developers creating universal apps.
+Run the project's lint command with:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run lint
+```
+
+For more information, see the [Expo documentation](https://docs.expo.dev/) and [Expo Router documentation](https://docs.expo.dev/router/introduction/).
