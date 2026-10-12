@@ -1,53 +1,53 @@
 # Walking Tracker
 
-Walking Tracker is an Expo and React Native app for recording walks with device location. The Walk tab displays the current coordinates and a timestamped list of recorded location points.
+A mobile walking tracker built with Expo and React Native. Check your current location, record a walk, and review its saved location points.
 
 ## Features
 
-- Check the device's current location.
-- Start, pause, resume, and stop a walk.
-- Record latitude, longitude, and timestamp for each location update.
-- Save recorded location points to local device storage.
-- Track in the background on Android and iOS. On web, tracking runs while the page is active.
+- View your current latitude and longitude.
+- Start, pause, resume, and stop location tracking.
+- See the current tracking status: idle, tracking, or paused.
+- Review recorded location points.
+- Receive location updates in the background on mobile while a walk is active.
 
-The Home and Explore tabs currently contain Expo starter content.
+## Get Started
 
-## Requirements
+### Requirements
 
 - Node.js and npm
-- A device or simulator with location services for location tracking
+- A device or emulator with location services enabled
 
-## Getting started
-
-Install dependencies and start the Expo development server:
+### Install and Run
 
 ```bash
 npm install
 npx expo start
 ```
 
-Use the terminal prompts to open the app in an Android emulator, iOS simulator, or web browser. To start a platform directly, use one of these commands:
+Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a platform.
 
-```bash
-npm run android
-npm run ios
-npm run web
-```
+## Using the Tracker
 
-Location permission must be granted to use tracking. Android and iOS request background location permission when a walk starts; web requests foreground location permission. Native background tracking may require a development build depending on the device and Expo environment.
+1. Select **Get Current Location** to view your coordinates.
+2. Select **Start Walk** and grant the requested location permissions.
+3. Use **Pause** and **Resume** to control tracking during your walk.
+4. Select **Stop** to finish. Recorded points appear in the list.
+
+> Location access requires foreground permission. Android and iOS also request background location permission when you start a walk.
+
+## Manual Checks
+
+- **Current location:** Allow permission and confirm that coordinates appear. Denying permission should show an error message.
+- **Walk tracking:** Start a walk, move with the device, and confirm that location points are recorded.
+- **Tracking controls:** Pause, resume, and stop the walk using the corresponding buttons.
+
+## Built With
+
+- [Expo](https://expo.dev/)
+- [React Native](https://reactnative.dev/)
+- `expo-location`
+- `expo-task-manager`
 
 ## Privacy
 
-Location is collected only when the user requests their current position or starts a walk. Each recorded point includes latitude, longitude, and time, and is stored locally on the device. The app currently does not upload this data to a server. Tracking can be paused or stopped in the Walk tab.
-
-## Development
-
-Routes are defined in `src/app/`, and the location tracking implementation is in `src/components/location-tracker.tsx`.
-
-Run the project's lint command with:
-
-```bash
-npm run lint
-```
-
-For more information, see the [Expo documentation](https://docs.expo.dev/) and [Expo Router documentation](https://docs.expo.dev/router/introduction/).
+The app reads your location when you request your current position. During an active walk, it records latitude, longitude, and timestamps. Recorded points are stored locally on the device. Pause or stop tracking to end location collection for the walk.
