@@ -1,41 +1,44 @@
-import { useState, useEffect } from 'react';
-import { Platform, Text, View, StyleSheet } from 'react-native';
 
-import * as Location from 'expo-location';
-import PermissionsButton from '../components/permissions-button';
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+import PermissionsButton from "@/components/permissions-button";
+import * as Location from "expo-location";
 
 export default function WalkScreen() {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null,
+  );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function getCurrentLocation() {
-      
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
         return;
       }
 
       let location = await Location.getCurrentPositionAsync({});
-      console.log('location', location);
+      console.log(location);
+      const { latitude, longitude } = location.coords;
+      console.log(latitude, longitude);
       setLocation(location);
     }
 
     getCurrentLocation();
   }, []);
 
-  let text = 'Waiting...';
+  let text = "Waiting...";
   if (errorMsg) {
     text = errorMsg;
   } else if (location) {
-    const { latitude, longitude } = location.coords;
-    text = `Latitude: ${latitude}, Longitude: ${longitude}`;
+    text = JSON.stringify(location);
   }
 
   return (
     <View style={styles.container}>
-      <PermissionsButton title="Start Walk" />
+      <PermissionsButton />
       <Text style={styles.paragraph}>{text}</Text>
     </View>
   );
@@ -44,12 +47,15 @@ export default function WalkScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   paragraph: {
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    marginTop: 20,
   },
 });
