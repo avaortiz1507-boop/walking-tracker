@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
-import { Button, StyleSheet, View } from "react-native";
+import { Button, Platform, StyleSheet, View } from "react-native";
 
 const LOCATION_TASK_NAME = "background-location-task";
 
@@ -9,22 +9,49 @@ const requestPermissions = async () => {
     await Location.requestForegroundPermissionsAsync();
 
   console.log("foregroundStatus", foregroundStatus);
-  if (foregroundStatus === "granted") {
-    const { status: backgroundStatus } =
-      await Location.requestBackgroundPermissionsAsync();
-    console.log("backgroundStatus", backgroundStatus);
 
-    if (backgroundStatus === "granted") {
-      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+  if (foregroundStatus !== "granted") {
+    return;
+  }
+
+  //browsers
+  console.log("current platform", Platform.OS);
+  if (Platform.OS === "web") {
+    await Location.watchPositionAsync(
+      {
         accuracy: Location.Accuracy.Balanced,
-      });
+      },
+      (location) => {
+        console.log("foreground location", location);
+      },
+    );
+
+    return;
+  } else {
+    if (foregroundStatus === "granted") {
+      const { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync();
+      console.log("backgroundStatus", backgroundStatus);
+
+      if (backgroundStatus === "granted") {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
     }
   }
 };
 
-const PermissionsButton = () => (
+const PermissionsButton = ({ title }: { title?: string | null }) => (
   <View style={styles.container}>
-    <Button onPress={requestPermissions} title="Enable background location" />
+    <Button
+      onPress={requestPermissions}
+      title={
+        title !== null && title !== undefined
+          ? title
+          : `Enable ${Platform.OS === "web" ? "foreground" : "background"} location`
+      }
+    />
   </View>
 );
 

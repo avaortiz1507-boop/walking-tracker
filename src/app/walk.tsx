@@ -1,160 +1,174 @@
+import PermissionsButton from "@/components/permissions-button";
+import Constants from "expo-constants";
 import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
-import { useState, useSyncExternalStore } from "react";
-import { Button, FlatList, Platform, StyleSheet, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useEffect, useState } from "react";
+import { Platform, StyleSheet, Text, View, Button } from "react-native";
 
-const LOCATION_TASK_NAME = "background-location-task";
-const PERMISSION_DENIED_MESSAGE = "Location access is required to use tracking.";
-
-type State = {
-  status: "idle" | "tracking" | "paused";
-  current: Location.LocationObject | null;
-  records: { id: string; latitude: number; longitude: number; timestamp: number }[];
-};
-
-// Module-level store because the background task runs outside React.
-let state: State = { status: "idle", current: null, records: [] };
-let webWatch: Location.LocationSubscription | null = null;
-const listeners = new Set<() => void>();
-
-const getState = () => state;
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function update(patch: Partial<State>) {
-  state = { ...state, ...patch };
-  listeners.forEach((l) => l());
-}
-
-function addRecords(locations: Location.LocationObject[]) {
-  const newRecords = locations.map((loc) => ({
-    id: `${loc.timestamp}`,
-    latitude: loc.coords.latitude,
-    longitude: loc.coords.longitude,
-    timestamp: loc.timestamp,
-  }));
-  update({
-    records: [...state.records, ...newRecords],
-    current: locations[locations.length - 1],
-  });
-}
-
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error || !data) return;
-  addRecords((data as { locations: Location.LocationObject[] }).locations);
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
-async function getCurrentLocation() {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  if (status !== "granted") return false;
+async function registerForPushNotificationsAsync() {
+  let token;
 
-  update({ current: await Location.getCurrentPositionAsync({}) });
-  return true;
-}
-
-async function startUpdates() {
-  if (Platform.OS === "web") {
-    webWatch = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.Balanced },
-      (loc) => addRecords([loc]),
-    );
-    return;
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("myNotificationChannel", {
+      name: "A channel is needed for the permissions prompt to appear",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
   }
 
-  await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-    accuracy: Location.Accuracy.Balanced,
-    foregroundService: {
-      notificationTitle: "Tracking",
-      notificationBody: "Location tracking active",
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== "granted") {
+    alert("Failed to get push token for push notification!");
+    return;
+  }
+  // Learn more about projectId:
+  // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
+  // EAS projectId is used here.
+  try {
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId;
+    if (!projectId) {
+      throw new Error("Project ID not found");
+    }
+    token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })
+    ).data;
+    console.log(token);
+  } catch (e) {
+    token = `${e}`;
+  }
+
+  return token;
+}
+async function schedulePushNotification() {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "You've got mail! 📬",
+      body: 'Here is the notification body',
+      data: { data: 'goes here', test: { test1: 'more data' } },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 2,
     },
   });
 }
 
-async function stopUpdates() {
-  if (Platform.OS === "web") {
-    webWatch?.remove();
-    webWatch = null;
-    return;
-  }
 
-  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)) {
-    await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-  }
-}
-
-async function startTracking() {
-  const fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== "granted") return false;
-
-  if (Platform.OS !== "web") {
-    const bg = await Location.requestBackgroundPermissionsAsync();
-    if (bg.status !== "granted") return false;
-  }
-
-  update({ records: [] });
-  await startUpdates();
-  update({ status: "tracking" });
-  return true;
-}
-
-async function pauseTracking() {
-  await stopUpdates();
-  update({ status: "paused" });
-}
-
-async function resumeTracking() {
-  await startUpdates();
-  update({ status: "tracking" });
-}
-
-async function stopTracking() {
-  await stopUpdates();
-  update({ status: "idle" });
-}
-
-export default function LocationTracker() {
-  const { status, current, records } = useSyncExternalStore(subscribe, getState);
+export default function WalkScreen() {
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null,
+  );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [channels, setChannels] = useState<Notifications.NotificationChannel[]>(
+    [],
+  );
+  const [notification, setNotification] = useState<
+    Notifications.Notification | undefined
+  >(undefined);
 
-  const run = async (action: () => Promise<boolean | void>) => {
-    const ok = await action();
-    setErrorMsg(ok === false ? PERMISSION_DENIED_MESSAGE : null);
-  };
+  useEffect(() => {
+    async function getCurrentLocation() {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
 
-  const coords = current?.coords;
+      let location = await Location.getCurrentPositionAsync({});
+      console.log(location);
+      const { latitude, longitude } = location.coords;
+      console.log(latitude, longitude);
+      setLocation(location);
+    }
+    
+
+    async function setupNotification() {
+      registerForPushNotificationsAsync().then(
+        (token) => token && setExpoPushToken(token),
+      );
+
+      if (Platform.OS === "android") {
+        Notifications.getNotificationChannelsAsync().then((value) =>
+          setChannels(value ?? []),
+        );
+      }
+      const notificationListener =
+        Notifications.addNotificationReceivedListener((notification) => {
+          setNotification(notification);
+        });
+
+      const responseListener =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          console.log(response);
+        });
+
+      return () => {
+        notificationListener.remove();
+        responseListener.remove();
+      };
+    }
+    
+
+    getCurrentLocation();
+    setupNotification();
+  }, []);
+
+  let text = "Waiting...";
+  if (errorMsg) {
+    text = errorMsg;
+  } else if (location) {
+    const { latitude, longitude } = location?.coords ?? {
+      latitude: "N/A",
+      longitude: "N/A",
+    };
+
+    text = `Latitude: ${latitude}, Longitude: ${longitude}`;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>
-        {coords
-          ? `Latitude: ${coords.latitude}, Longitude: ${coords.longitude}`
-          : "No location yet"}
-      </Text>
-      <Text style={styles.text}>Status: {status}</Text>
-      {errorMsg && <Text style={styles.text}>{errorMsg}</Text>}
-
-      <View>
-        <Button title="Get Current Location" onPress={() => run(getCurrentLocation)} />
-        <Button title="Start Walk" onPress={() => run(startTracking)} disabled={status !== "idle"} />
-        <Button title="Pause" onPress={() => run(pauseTracking)} disabled={status !== "tracking"} />
-        <Button title="Resume" onPress={() => run(resumeTracking)} disabled={status !== "paused"} />
-        <Button title="Stop" onPress={() => run(stopTracking)} disabled={status === "idle"} />
-      </View>
-
-      <FlatList
-        data={records}
-        keyExtractor={(r) => r.id}
-        renderItem={({ item }) => (
-          <Text>
-            {new Date(item.timestamp).toLocaleTimeString()}: {item.latitude}, {item.longitude}
-          </Text>
+         <Text>Your expo push token: {expoPushToken}</Text>
+      <Text>{`Channels: ${JSON.stringify(
+        channels.map(c => c.id),
+        null,
+        2
+      )}`}</Text>
+      <PermissionsButton title="Start Walk" />
+      <Text style={styles.paragraph}>{text}</Text>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        {/* hide button on web platform */}
+        {Platform.OS !== "web" && (
+          <Button
+            title="Press to schedule a notification"
+            onPress={async () => {
+              await schedulePushNotification();
+            }}
+          />
         )}
-      />
+        <Text>Title: {notification && notification.request.content.title} </Text>
+        <Text>Body: {notification && notification.request.content.body}</Text>
+        <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
+      </View>
     </View>
   );
 }
@@ -163,11 +177,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    padding: 20,
-    gap: 8,
+    justifyContent: "center",
   },
-  text: {
+  paragraph: {
     fontSize: 18,
     textAlign: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    marginTop: 20,
   },
 });
