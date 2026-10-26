@@ -203,23 +203,16 @@ function notifyGoalReached() {
 }
 
 
-// after canceling, clear the stored notification ID
-const cancelReminder = async () => {
-  const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
-  if (id) {
-    await Notifications.dismissNotificationAsync(id);
-    await AsyncStorage.removeItem(PAUSE_REMINDER_KEY);
-  }
-  alert("Pause reminder canceled.");
-};
-
 // Scheduling isn't supported on web, so there is nothing to cancel there.
+// Cancels the scheduled pause reminder by its saved ID, then clears the ID.
 async function cancelPauseReminders() {
   if (Platform.OS === "web") return;
   const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
   if (!id) return;
   await Notifications.cancelScheduledNotificationAsync(id);
+  await Notifications.dismissNotificationAsync(id).catch(() => {});
   await AsyncStorage.removeItem(PAUSE_REMINDER_KEY);
+  alert("Pause reminder canceled.");
 }
 
 const pauseWalk = async () => {
@@ -250,7 +243,6 @@ const resumeWalk = async () => {
   setWalkStatus("tracking");
   setReminderMessage("");
   await cancelPauseReminders();
-  await cancelReminder();
 };
 
 // button to stop walk, only enabled when walk status is not idle
@@ -259,7 +251,6 @@ const stopWalk = async () => {
   setWalkStatus("idle");
   setReminderMessage("");
   await cancelPauseReminders();
-  await cancelReminder();
 };
 
 

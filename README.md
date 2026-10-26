@@ -38,6 +38,14 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 
 > Location access requires foreground permission. Android and iOS also request background location permission when you start a walk.
 
+## Using on Mobile
+
+1. Download Expo Go App and sign in with the same email you used for GitHub/VsCode.
+2. Make sure your mobile device and the enviornment(computer used to run this program) you used to set up is connected to the same wifi.
+3. Run npx expo start in terminal.
+4. Scroll until you see the QR code, scan it with your phone camera, and viola! App
+   should be running on your phone.
+
 ## Manual Checks
 
 - **Current location:** Allow permission and confirm that coordinates appear. Denying permission should show an error message.
@@ -56,40 +64,41 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 The app reads your location when you request your current position. During an active walk, it records latitude, longitude, and timestamps. Recorded points are stored locally on the device. Pause or stop tracking to end location collection for the walk.
 
 ## Edit 10/26/26 Testing Newly Added Timers and Goal Notifications
+
 1. Approve notification permission and confirm that the status message changes.
-Yes. I have approved permission on mobile device. Remembers permissions.
+   Yes. I have approved permission on mobile device. Remembers permissions.
 2. Deny notification permission and confirm that the app explains that reminders are disabled.
-Yes. I have declined permission on web. 
+   Yes. I have declined permission on web.
 3. Pause a walk and wait for the reminder to appear.
-This works.
+   This works.
 4. Pause and then resume the walk before the reminder appears.
-I didn't get notification. Counted 9 seconds before resuming. 
+   I didn't get notification. Counted 9 seconds before resuming.
 5. Confirm that the reminder does not appear after the walk is resumed.
-Does appear. Fixing after this is documented.
+   Yes.
 6. Pause and then stop the walk before the reminder appears.
-Yup.
+   Yup.
 7. Confirm that the reminder does not appear after the walk is stopped.
-Does appear. Fixing after this is documented.
+   Yes.
 8. Complete the 60-second walking goal.
-Completed.
+   Completed.
 9. Confirm that the goal notification appears.
-Yes, it does.
+   Yes, it does.
 10. Confirm that the goal notification appears only once during the walking session.
-Yes, it does.
+    Yes, it does.
 11. Minimize the app and confirm that a notification can still appear.
-Yes, it does.
+    Yes, it does.
 
 # PRoject Working
+
 ![Project Screenshot](src/app/images/Screenshot_26-10-2026_32928_localhost.jpeg)
 ![Project Screenshot](src/app/images/Screenshot_26-10-2026_33042_localhost.jpeg)
 
-
 ## Greatest Problems/Challenges
-The biggest challenge so far was adding the simple walking goal. When I looked it up and 
-started researching on how I can do this, the code made little sense to me so I had to
-go down a rabbit hole on things like what ReturnType<typeof setInterval>  is. At first, I was overwhelmed because I didn't know where to start but then it started to make more sense
-once I started reading the code because I've worked with it in the past.
 
+The biggest challenge so far was adding the simple walking goal. When I looked it up and
+started researching on how I can do this, the code made little sense to me so I had to
+go down a rabbit hole on things like what ReturnType<typeof setInterval> is. At first, I was overwhelmed because I didn't know where to start but then it started to make more sense
+once I started reading the code because I've worked with it in the past.
 
 The second biggest challenge was how can I make an ID for the pause reminder? Luckily, after looking it up, it was straight forward. Had to make a key, which can be translated into an ID
 (learned this from HashTable). Then the rest started to make more sense and I was understanding.
