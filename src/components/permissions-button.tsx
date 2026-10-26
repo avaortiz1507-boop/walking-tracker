@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import Constants, { ExecutionEnvironment } from "expo-constants";
@@ -99,6 +100,47 @@ const startWalk = async () => {
   setWalkStatus("tracking");
 };
 
+// creating a unique key for notification ID 
+const PAUSE_REMINDER_KEY = "pauseReminderId";
+
+// Reuses the stored ID if there is one, otherwise generates a new one.
+export const generateNotificationId = async () => {
+  const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
+  return id || `pause-reminder-${Date.now()}`;
+};
+
+// reminder notification using ID to cancel
+export const schedulePauseReminder = async (
+  title: string,
+  body: string,
+  trigger: Notifications.NotificationTriggerInput,
+) => {
+  const id = await generateNotificationId();
+  await AsyncStorage.setItem(PAUSE_REMINDER_KEY, id);
+
+  // Passing identifier is what lets cancelScheduledNotificationAsync find it later.
+  await Notifications.scheduleNotificationAsync({
+    identifier: id,
+    content: {
+      title,
+      body,
+      data: { id },
+    },
+    trigger,
+  });
+
+  console.log("Pause reminder scheduled with ID:", id);
+};
+
+// Scheduling isn't supported on web, so there is nothing to cancel there.
+async function cancelPauseReminders() {
+  if (Platform.OS === "web") return;
+  const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
+  if (!id) return;
+  await Notifications.cancelScheduledNotificationAsync(id);
+  await AsyncStorage.removeItem(PAUSE_REMINDER_KEY);
+}
+
 const pauseWalk = async () => {
   await stopUpdates();
   setWalkStatus("paused");
@@ -110,17 +152,14 @@ const pauseWalk = async () => {
   if (notificationStatus !== "granted") return;
 
   // Schedule a notification to remind the user that the walk is paused
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Walk Paused",
-      body: "Your walk is still paused. Open the app when you are ready to continue.",
-      data: { data: 'goes here', test: { test1: 'more data' } },
-    },
-    trigger: {
+  await schedulePauseReminder(
+    "Walk Paused",
+    "Your walk is still paused. Open the app when you are ready to continue.",
+    {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 10,
     },
-  });
+  );
   setReminderMessage("Pause reminder scheduled.");
 };
 
@@ -129,6 +168,7 @@ const resumeWalk = async () => {
   await startUpdates();
   setWalkStatus("tracking");
   setReminderMessage("");
+  await cancelPauseReminders();
 };
 
 // button to stop walk, only enabled when walk status is not idle
@@ -136,6 +176,7 @@ const stopWalk = async () => {
   await stopUpdates();
   setWalkStatus("idle");
   setReminderMessage("");
+  await cancelPauseReminders();
 };
 
 
