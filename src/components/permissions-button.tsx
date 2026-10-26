@@ -48,7 +48,13 @@ function subscribe(listener: () => void) {
 }
 
 // useSyncExternalStore is used to read data outside of React(location updates) and subscribe to changes in walk status
-const useWalkStatus = () => useSyncExternalStore(subscribe, () => walkStatus);
+// The third argument is the server snapshot, used when Expo renders the web page statically.
+const useWalkStatus = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => walkStatus,
+    () => "idle" as WalkStatus,
+  );
 
 async function startUpdates() {
   if (foregroundOnly) {
@@ -132,6 +138,16 @@ export const schedulePauseReminder = async (
   console.log("Pause reminder scheduled with ID:", id);
 };
 
+// after canceling, clear the stored notification ID
+const cancelReminder = async () => {
+  const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
+  if (id) {
+    await Notifications.dismissNotificationAsync(id);
+    await AsyncStorage.removeItem(PAUSE_REMINDER_KEY);
+  }
+  alert("Pause reminder canceled.");
+};
+
 // Scheduling isn't supported on web, so there is nothing to cancel there.
 async function cancelPauseReminders() {
   if (Platform.OS === "web") return;
@@ -169,6 +185,7 @@ const resumeWalk = async () => {
   setWalkStatus("tracking");
   setReminderMessage("");
   await cancelPauseReminders();
+  await cancelReminder();
 };
 
 // button to stop walk, only enabled when walk status is not idle
@@ -177,6 +194,7 @@ const stopWalk = async () => {
   setWalkStatus("idle");
   setReminderMessage("");
   await cancelPauseReminders();
+  await cancelReminder();
 };
 
 
@@ -248,7 +266,11 @@ export const WalkStatusText = () => {
 
 // text to display reminder message when walk is paused
 export const PauseReminderText = () => {
-  const message = useSyncExternalStore(subscribe, () => reminderMessage);
+  const message = useSyncExternalStore(
+    subscribe,
+    () => reminderMessage,
+    () => "",
+  );
   return message ? <Text>{message}</Text> : null;
 };
 
