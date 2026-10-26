@@ -1,11 +1,11 @@
+import { ThemedText } from "@/components/themed-text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
 import { useSyncExternalStore } from "react";
 import { Button, Platform, StyleSheet, View } from "react-native";
-import { ThemedText } from "@/components/themed-text";
-import * as Notifications from "expo-notifications";
 
 const LOCATION_TASK_NAME = "background-location-task";
 
@@ -24,63 +24,6 @@ const listeners = new Set<() => void>();
 // Used when foregroundOnly. watchPositionAsync returns a LocationSubscription, and calling
 // .remove() on it is the only way to pause or stop. Otherwise we stop LOCATION_TASK_NAME.
 let webLocationSubscription: Location.LocationSubscription | null = null;
-
-// Seconds walked so far. The timer runs only while tracking, keeps its value when paused,
-// and resets when the walk stops.
-let elapsedSeconds = 0;
-let walkTimer: ReturnType<typeof setInterval> | null = null;
-// Remembers whether the goal notification was already sent, so its used once per walk
-let goalNotificationSent = false;
-//Set the variable to true after sending the notification.
-function setNotificationSent(sent: boolean) {
-  goalNotificationSent = sent;
-} 
-
-
-//updates walk status from resume, pause and stop. actual data
-function setWalkStatus(next: WalkStatus) {
-  walkStatus = next;
-
-  // tracking mode: start the timer if tracking, stop it otherwise
-  if (next === "tracking") {
-    if (!walkTimer) {
-      walkTimer = setInterval(() => {
-        // continuously adds one second until paused or stopped
-        elapsedSeconds += 1;
-        listeners.forEach((l) => l());
-        if (elapsedSeconds >= WALK_GOAL_SECONDS && !goalNotificationSent) {
-          notifyGoalReached();
-          // when true, mark the notification as sent so it won't be sent again
-          setNotificationSent(true);
-        }
-      }, 1000);
-    }
-  } else {
-    if (walkTimer) {
-      clearInterval(walkTimer);
-      walkTimer = null;
-    }
-    // starts over if the walk is idle and there is no ongoing walk
-    if (next === "idle") {
-      elapsedSeconds = 0;
-      // if goalNotificationSent is false, the goal notification can be sent again 
-      // in the next walk because the previous walk has ended
-      goalNotificationSent = false;
-    }
-  }
-
-  listeners.forEach((l) => l());
-
-  
-}
-
-// added reminder message for when the walk is paused
-let reminderMessage = "";
-
-function setReminderMessage(next: string) {
-  reminderMessage = next;
-  listeners.forEach((l) => l());
-}
 
 // used to let parts of your app "listen" for changes, such as when it starts, pauses, or stops tracking
 // Example usage: const status = useWalkStatus();
@@ -116,7 +59,7 @@ async function startUpdates() {
   });
 }
 
-// stops location updates for both web and mobile 
+// stops location updates for both web and mobile
 async function stopUpdates() {
   if (foregroundOnly) {
     webLocationSubscription?.remove();
@@ -152,8 +95,100 @@ const startWalk = async () => {
   setWalkStatus("tracking");
 };
 
-// creating a unique key for notification ID 
+// Part 6 Simple Walking Goal
+// goal of 60 seconds on tracking screen
+const WALK_GOAL_SECONDS = 60;
+
+// Seconds walked so far. The timer runs only while tracking, keeps its value when paused,
+// and resets when the walk stops.
+let elapsedSeconds = 0;
+let walkTimer: ReturnType<typeof setInterval> | null = null;
+// Remembers whether the goal notification was already sent, so its used once per walk
+let goalNotificationSent = false;
+//Set the variable to true after sending the notification.
+function setNotificationSent(sent: boolean) {
+  goalNotificationSent = sent;
+}
+
+// Part 7/8 Send a Goal Notification and prevent duplicates
+// called by the timer once the walker reaches the goal
+function notifyGoalReached() {
+  if (Platform.OS === "web") return;
+  Notifications.getPermissionsAsync().then(({ status }) => {
+    if (status !== "granted") return;
+    return Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Goal Reached",
+        body: "Great job! You completed your walking goal.",
+      },
+      trigger: null,
+    });
+  });
+}
+
+//updates walk status from resume, pause and stop. actual data
+function setWalkStatus(next: WalkStatus) {
+  walkStatus = next;
+
+  // tracking mode: start the timer if tracking, stop it otherwise
+  if (next === "tracking") {
+    if (!walkTimer) {
+      walkTimer = setInterval(() => {
+        // continuously adds one second until paused or stopped
+        elapsedSeconds += 1;
+        listeners.forEach((l) => l());
+        if (elapsedSeconds >= WALK_GOAL_SECONDS && !goalNotificationSent) {
+          notifyGoalReached();
+          // when true, mark the notification as sent so it won't be sent again
+          setNotificationSent(true);
+        }
+      }, 1000);
+    }
+  } else {
+    if (walkTimer) {
+      clearInterval(walkTimer);
+      walkTimer = null;
+    }
+    // starts over if the walk is idle and there is no ongoing walk
+    if (next === "idle") {
+      elapsedSeconds = 0;
+      // if goalNotificationSent is false, the goal notification can be sent again
+      // in the next walk because the previous walk has ended
+      goalNotificationSent = false;
+    }
+  }
+
+  listeners.forEach((l) => l());
+}
+
+// shows the 60 second goal and how many seconds have been walked
+export const WalkGoalText = () => {
+  const seconds = useSyncExternalStore(
+    subscribe,
+    () => elapsedSeconds,
+    () => 0,
+  );
+  return (
+    <View>
+      <ThemedText>Goal: {WALK_GOAL_SECONDS} seconds</ThemedText>
+      <ThemedText>CurrentProgress: {seconds} seconds</ThemedText>
+      {seconds >= WALK_GOAL_SECONDS && (
+        <ThemedText>Walking goal reached!</ThemedText>
+      )}
+    </View>
+  );
+};
+
+// Part 5 Pause Reminder
+// creating a unique key for notification ID
 const PAUSE_REMINDER_KEY = "pauseReminderId";
+// added reminder message for when the walk is paused
+let reminderMessage = "";
+
+function setReminderMessage(next: string) {
+  reminderMessage = next;
+  listeners.forEach((l) => l());
+}
 
 // Reuses the stored ID if there is one, otherwise generates a new one.
 export const generateNotificationId = async () => {
@@ -184,43 +219,36 @@ export const schedulePauseReminder = async (
   console.log("Pause reminder scheduled with ID:", id);
 };
 
-// goal of 60 seconds on tracking screen
-const WALK_GOAL_SECONDS = 60;
+// Scheduling isn't supported on web, so web only tracks the on-screen reminder status.
+let webReminderActive = false;
 
-// called by the timer once the walker reaches the goal
-function notifyGoalReached() {
-  if (Platform.OS === "web") return;
-  Notifications.getPermissionsAsync().then(({ status }) => {
-    if (status !== "granted") return;
-    return Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Goal Reached",
-        body: "Great job! You completed your walking goal.",
-      },
-      trigger: null,
-    });
-  });
-}
-
-
-// Scheduling isn't supported on web, so there is nothing to cancel there.
 // Cancels the scheduled pause reminder by its saved ID, then clears the ID.
 async function cancelPauseReminders() {
-  if (Platform.OS === "web") return;
+  if (Platform.OS === "web") {
+    if (webReminderActive) {
+      webReminderActive = false;
+      setReminderMessage("Pause reminder canceled.");
+    }
+    return;
+  }
   const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
   if (!id) return;
   await Notifications.cancelScheduledNotificationAsync(id);
   await Notifications.dismissNotificationAsync(id).catch(() => {});
   await AsyncStorage.removeItem(PAUSE_REMINDER_KEY);
-  alert("Pause reminder canceled.");
+  setReminderMessage("Pause reminder canceled.");
 }
 
 const pauseWalk = async () => {
   await stopUpdates();
   setWalkStatus("paused");
 
-  // Scheduling isn't supported on web, and nothing is scheduled without permission.
-  if (Platform.OS === "web") return;
+  // Web can't schedule notifications, so it only shows the status message.
+  if (Platform.OS === "web") {
+    webReminderActive = true;
+    setReminderMessage("Pause reminder scheduled.");
+    return;
+  }
   const { status: notificationStatus } =
     await Notifications.getPermissionsAsync();
   if (notificationStatus !== "granted") return;
@@ -253,6 +281,15 @@ const stopWalk = async () => {
   await cancelPauseReminders();
 };
 
+// text to display reminder message when walk is paused
+export const PauseReminderText = () => {
+  const message = useSyncExternalStore(
+    subscribe,
+    () => reminderMessage,
+    () => "",
+  );
+  return message ? <ThemedText>{message}</ThemedText> : null;
+};
 
 // button to start walk, only enabled when walk status is idle
 const PermissionsButton = ({ title }: { title?: string | null }) => {
@@ -271,7 +308,6 @@ const PermissionsButton = ({ title }: { title?: string | null }) => {
     </View>
   );
 };
-
 
 // button to pause walk, only enabled when walk status is tracking
 export const PauseWalkButton = ({ title }: { title?: string }) => {
@@ -318,32 +354,6 @@ export const StopWalkButton = ({ title }: { title?: string }) => {
 export const WalkStatusText = () => {
   const status = useWalkStatus();
   return <ThemedText>Walk status: {status}</ThemedText>;
-};
-
-// shows the 60 second goal and how many seconds have been walked
-export const WalkGoalText = () => {
-  const seconds = useSyncExternalStore(
-    subscribe,
-    () => elapsedSeconds,
-    () => 0,
-  );
-  return (
-    <View>
-      <ThemedText>Goal: {WALK_GOAL_SECONDS} seconds</ThemedText>
-      <ThemedText>CurrentProgress: {seconds} seconds</ThemedText>
-      {seconds >= WALK_GOAL_SECONDS && <ThemedText>Walking goal reached!</ThemedText>}
-    </View>
-  );
-};
-
-// text to display reminder message when walk is paused
-export const PauseReminderText = () => {
-  const message = useSyncExternalStore(
-    subscribe,
-    () => reminderMessage,
-    () => "",
-  );
-  return message ? <ThemedText>{message}</ThemedText> : null;
 };
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
