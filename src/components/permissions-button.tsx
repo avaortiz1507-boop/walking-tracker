@@ -29,6 +29,13 @@ let webLocationSubscription: Location.LocationSubscription | null = null;
 // and resets when the walk stops.
 let elapsedSeconds = 0;
 let walkTimer: ReturnType<typeof setInterval> | null = null;
+// Remembers whether the goal notification was already sent, so its used once per walk
+let goalNotificationSent = false;
+//Set the variable to true after sending the notification.
+function setNotificationSent(sent: boolean) {
+  goalNotificationSent = sent;
+} 
+
 
 //updates walk status from resume, pause and stop. actual data
 function setWalkStatus(next: WalkStatus) {
@@ -41,7 +48,11 @@ function setWalkStatus(next: WalkStatus) {
         // continuously adds one second until paused or stopped
         elapsedSeconds += 1;
         listeners.forEach((l) => l());
-        if (elapsedSeconds === WALK_GOAL_SECONDS) notifyGoalReached();
+        if (elapsedSeconds >= WALK_GOAL_SECONDS && !goalNotificationSent) {
+          notifyGoalReached();
+          // when true, mark the notification as sent so it won't be sent again
+          setNotificationSent(true);
+        }
       }, 1000);
     }
   } else {
@@ -49,8 +60,13 @@ function setWalkStatus(next: WalkStatus) {
       clearInterval(walkTimer);
       walkTimer = null;
     }
-    // starts over if the walk is idle
-    if (next === "idle") elapsedSeconds = 0;
+    // starts over if the walk is idle and there is no ongoing walk
+    if (next === "idle") {
+      elapsedSeconds = 0;
+      // if goalNotificationSent is false, the goal notification can be sent again 
+      // in the next walk because the previous walk has ended
+      goalNotificationSent = false;
+    }
   }
 
   listeners.forEach((l) => l());
@@ -131,6 +147,8 @@ const startWalk = async () => {
   }
 
   await startUpdates();
+  // a new walking session, so the goal notification can be sent again
+  setNotificationSent(false);
   setWalkStatus("tracking");
 };
 
