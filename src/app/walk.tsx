@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, View, Button } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View, Button } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -149,7 +149,10 @@ export default function WalkScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.container}
+    >
          <Text>Your expo push token: {expoPushToken}</Text>
       <Text>{`Channels: ${JSON.stringify(
         channels.map(c => c.id),
@@ -164,7 +167,7 @@ export default function WalkScreen() {
       <WalkGoalText />
       <PauseReminderText />
       <Text style={styles.paragraph}>{text}</Text>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
         {/* hide button on web platform */}
         {Platform.OS !== "web" && (
           <Button
@@ -178,22 +181,23 @@ export default function WalkScreen() {
         <Text>Body: {notification && notification.request.content.body}</Text>
         <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingTop: 60,
+    paddingBottom: 120,
   },
   paragraph: {
     fontSize: 18,
     textAlign: "center",
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
     marginTop: 20,
   },
 });

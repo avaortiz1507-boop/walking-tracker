@@ -3,7 +3,8 @@ import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useSyncExternalStore } from "react";
-import { Button, Platform, StyleSheet, Text, View } from "react-native";
+import { Button, Platform, StyleSheet, View } from "react-native";
+import { ThemedText } from "@/components/themed-text";
 import * as Notifications from "expo-notifications";
 
 const LOCATION_TASK_NAME = "background-location-task";
@@ -40,6 +41,7 @@ function setWalkStatus(next: WalkStatus) {
         // continuously adds one second until paused or stopped
         elapsedSeconds += 1;
         listeners.forEach((l) => l());
+        if (elapsedSeconds === WALK_GOAL_SECONDS) notifyGoalReached();
       }, 1000);
     }
   } else {
@@ -52,6 +54,8 @@ function setWalkStatus(next: WalkStatus) {
   }
 
   listeners.forEach((l) => l());
+
+  
 }
 
 // added reminder message for when the walk is paused
@@ -164,6 +168,21 @@ export const schedulePauseReminder = async (
 
 // goal of 60 seconds on tracking screen
 const WALK_GOAL_SECONDS = 60;
+
+// called by the timer once the walker reaches the goal
+function notifyGoalReached() {
+  if (Platform.OS === "web") return;
+  Notifications.getPermissionsAsync().then(({ status }) => {
+    if (status !== "granted") return;
+    return Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Goal Reached",
+        body: "Great job! You completed your walking goal.",
+      },
+      trigger: null,
+    });
+  });
+}
 
 
 // after canceling, clear the stored notification ID
@@ -289,7 +308,7 @@ export const StopWalkButton = ({ title }: { title?: string }) => {
 
 export const WalkStatusText = () => {
   const status = useWalkStatus();
-  return <Text>Walk status: {status}</Text>;
+  return <ThemedText>Walk status: {status}</ThemedText>;
 };
 
 // shows the 60 second goal and how many seconds have been walked
@@ -301,8 +320,9 @@ export const WalkGoalText = () => {
   );
   return (
     <View>
-      <Text>Goal: {WALK_GOAL_SECONDS} seconds</Text>
-      <Text>CurrentProgress: {seconds} seconds</Text>
+      <ThemedText>Goal: {WALK_GOAL_SECONDS} seconds</ThemedText>
+      <ThemedText>CurrentProgress: {seconds} seconds</ThemedText>
+      {seconds >= WALK_GOAL_SECONDS && <ThemedText>Walking goal reached!</ThemedText>}
     </View>
   );
 };
@@ -314,7 +334,7 @@ export const PauseReminderText = () => {
     () => reminderMessage,
     () => "",
   );
-  return message ? <Text>{message}</Text> : null;
+  return message ? <ThemedText>{message}</ThemedText> : null;
 };
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
@@ -331,9 +351,9 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginVertical: 4,
   },
 });
 
