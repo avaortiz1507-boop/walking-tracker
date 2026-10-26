@@ -1,24 +1,39 @@
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useSyncExternalStore } from "react";
 import { Button, Platform, StyleSheet, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
 
 const LOCATION_TASK_NAME = "background-location-task";
+
+// Web has no background location task, and Expo Go doesn't include the iOS background-location
+// Info.plist keys (it throws "NSLocation*UsageDescription must be present"). Both track in the
+// foreground with watchPositionAsync instead. Development builds use the background task.
+const foregroundOnly =
+  Platform.OS === "web" ||
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 type WalkStatus = "idle" | "tracking" | "paused";
 
 // Module-level so every button shares one status.
 let walkStatus: WalkStatus = "idle";
 const listeners = new Set<() => void>();
-// Web only. Browsers have no background location task, so
-// startLocationUpdatesAsync/stopLocationUpdatesAsync aren't available. Location.watchPositionAsync
-// returns a LocationSubscription instead; calling .remove() on it is the only way to pause or stop
-// tracking on web. iOS/Android pause and stop by stopping LOCATION_TASK_NAME.
+// Used when foregroundOnly. watchPositionAsync returns a LocationSubscription, and calling
+// .remove() on it is the only way to pause or stop. Otherwise we stop LOCATION_TASK_NAME.
 let webLocationSubscription: Location.LocationSubscription | null = null;
 
 //updates walk status from resume, pause and stop. actual data
 function setWalkStatus(next: WalkStatus) {
   walkStatus = next;
+  listeners.forEach((l) => l());
+}
+
+// added reminder message for when the walk is paused
+let reminderMessage = "";
+
+function setReminderMessage(next: string) {
+  reminderMessage = next;
   listeners.forEach((l) => l());
 }
 
@@ -35,7 +50,7 @@ function subscribe(listener: () => void) {
 const useWalkStatus = () => useSyncExternalStore(subscribe, () => walkStatus);
 
 async function startUpdates() {
-  if (Platform.OS === "web") {
+  if (foregroundOnly) {
     if (!webLocationSubscription) {
       webLocationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced },
@@ -52,7 +67,7 @@ async function startUpdates() {
 
 // stops location updates for both web and mobile 
 async function stopUpdates() {
-  if (Platform.OS === "web") {
+  if (foregroundOnly) {
     webLocationSubscription?.remove();
     webLocationSubscription = null;
     return;
@@ -71,7 +86,7 @@ const startWalk = async () => {
     return;
   }
 
-  if (Platform.OS !== "web") {
+  if (!foregroundOnly) {
     const { status: backgroundStatus } =
       await Location.requestBackgroundPermissionsAsync();
 
@@ -87,16 +102,40 @@ const startWalk = async () => {
 const pauseWalk = async () => {
   await stopUpdates();
   setWalkStatus("paused");
+
+  // Scheduling isn't supported on web, and nothing is scheduled without permission.
+  if (Platform.OS === "web") return;
+  const { status: notificationStatus } =
+    await Notifications.getPermissionsAsync();
+  if (notificationStatus !== "granted") return;
+
+  // Schedule a notification to remind the user that the walk is paused
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Walk Paused",
+      body: "Your walk is still paused. Open the app when you are ready to continue.",
+      data: { data: 'goes here', test: { test1: 'more data' } },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 10,
+    },
+  });
+  setReminderMessage("Pause reminder scheduled.");
 };
 
+// button to resume walk, only enabled when walk status is paused
 const resumeWalk = async () => {
   await startUpdates();
   setWalkStatus("tracking");
+  setReminderMessage("");
 };
 
+// button to stop walk, only enabled when walk status is not idle
 const stopWalk = async () => {
   await stopUpdates();
   setWalkStatus("idle");
+  setReminderMessage("");
 };
 
 
@@ -164,6 +203,12 @@ export const StopWalkButton = ({ title }: { title?: string }) => {
 export const WalkStatusText = () => {
   const status = useWalkStatus();
   return <Text>Walk status: {status}</Text>;
+};
+
+// text to display reminder message when walk is paused
+export const PauseReminderText = () => {
+  const message = useSyncExternalStore(subscribe, () => reminderMessage);
+  return message ? <Text>{message}</Text> : null;
 };
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {

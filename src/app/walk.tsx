@@ -1,4 +1,4 @@
-import PermissionsButton, {PauseWalkButton,ResumeWalkButton,StopWalkButton,WalkStatusText} from "@/components/permissions-button";
+import PermissionsButton, {PauseWalkButton,ResumeWalkButton,StopWalkButton,WalkStatusText,PauseReminderText} from "@/components/permissions-button";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -161,6 +161,7 @@ export default function WalkScreen() {
       <ResumeWalkButton title="Resume Walk" />
       <StopWalkButton title="Stop Walk" />
       <WalkStatusText />
+      <PauseReminderText />
       <Text style={styles.paragraph}>{text}</Text>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         {/* hide button on web platform */}
