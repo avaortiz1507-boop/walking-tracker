@@ -16,9 +16,10 @@ const foregroundOnly =
   Platform.OS === "web" ||
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
+// three statuses
 type WalkStatus = "idle" | "tracking" | "paused";
 
-// Module-level so every button shares one status.
+//every button shares one status.
 let walkStatus: WalkStatus = "idle";
 const listeners = new Set<() => void>();
 // Used when foregroundOnly. watchPositionAsync returns a LocationSubscription, and calling
@@ -43,6 +44,7 @@ const useWalkStatus = () =>
     () => "idle" as WalkStatus,
   );
 
+//start foreground location tracking once and avoid creating duplicate location listeners.
 async function startUpdates() {
   if (foregroundOnly) {
     if (!webLocationSubscription) {
@@ -72,6 +74,7 @@ async function stopUpdates() {
   }
 }
 
+//starts a new walk
 const startWalk = async () => {
   const { status: foregroundStatus } =
     await Location.requestForegroundPermissionsAsync();
@@ -231,6 +234,8 @@ async function cancelPauseReminders() {
     }
     return;
   }
+
+  // If there is no saved ID, there is nothing to cancel.
   const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
   if (!id) return;
   await Notifications.cancelScheduledNotificationAsync(id);
@@ -239,6 +244,7 @@ async function cancelPauseReminders() {
   setReminderMessage("Pause reminder canceled.");
 }
 
+// Pauses the current walk and schedules a pause reminder.
 const pauseWalk = async () => {
   await stopUpdates();
   setWalkStatus("paused");
