@@ -24,9 +24,33 @@ const listeners = new Set<() => void>();
 // .remove() on it is the only way to pause or stop. Otherwise we stop LOCATION_TASK_NAME.
 let webLocationSubscription: Location.LocationSubscription | null = null;
 
+// Seconds walked so far. The timer runs only while tracking, keeps its value when paused,
+// and resets when the walk stops.
+let elapsedSeconds = 0;
+let walkTimer: ReturnType<typeof setInterval> | null = null;
+
 //updates walk status from resume, pause and stop. actual data
 function setWalkStatus(next: WalkStatus) {
   walkStatus = next;
+
+  // tracking mode: start the timer if tracking, stop it otherwise
+  if (next === "tracking") {
+    if (!walkTimer) {
+      walkTimer = setInterval(() => {
+        // continuously adds one second until paused or stopped
+        elapsedSeconds += 1;
+        listeners.forEach((l) => l());
+      }, 1000);
+    }
+  } else {
+    if (walkTimer) {
+      clearInterval(walkTimer);
+      walkTimer = null;
+    }
+    // starts over if the walk is idle
+    if (next === "idle") elapsedSeconds = 0;
+  }
+
   listeners.forEach((l) => l());
 }
 
@@ -137,6 +161,10 @@ export const schedulePauseReminder = async (
 
   console.log("Pause reminder scheduled with ID:", id);
 };
+
+// goal of 60 seconds on tracking screen
+const WALK_GOAL_SECONDS = 60;
+
 
 // after canceling, clear the stored notification ID
 const cancelReminder = async () => {
@@ -262,6 +290,21 @@ export const StopWalkButton = ({ title }: { title?: string }) => {
 export const WalkStatusText = () => {
   const status = useWalkStatus();
   return <Text>Walk status: {status}</Text>;
+};
+
+// shows the 60 second goal and how many seconds have been walked
+export const WalkGoalText = () => {
+  const seconds = useSyncExternalStore(
+    subscribe,
+    () => elapsedSeconds,
+    () => 0,
+  );
+  return (
+    <View>
+      <Text>Goal: {WALK_GOAL_SECONDS} seconds</Text>
+      <Text>CurrentProgress: {seconds} seconds</Text>
+    </View>
+  );
 };
 
 // text to display reminder message when walk is paused
