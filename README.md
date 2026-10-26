@@ -1,6 +1,6 @@
 # Walking Tracker
 
-A mobile walking tracker built with Expo and React Native. Check your current location, record a walk, and review its saved location points. Added pause reminders and notificatiosn when reaches a walking goal.
+A mobile walking tracker built with Expo and React Native. Check your current location, record a walk, and review its saved location points. Added pause reminders and notifications when reaches a walking goal.
 
 ## Features
 
@@ -88,7 +88,7 @@ The app reads your location when you request your current position. During an ac
 11. Minimize the app and confirm that a notification can still appear.
     Yes, it does.
 
-# PRoject Working
+# Project Working
 
 ![Project Screenshot](src/app/images/Screenshot_26-10-2026_32928_localhost.jpeg)
 ![Project Screenshot](src/app/images/Screenshot_26-10-2026_33042_localhost.jpeg)
