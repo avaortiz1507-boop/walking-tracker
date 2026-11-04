@@ -1,4 +1,6 @@
 import PermissionsButton, {PauseWalkButton,ResumeWalkButton,StopWalkButton,WalkStatusText,WalkGoalText,PauseReminderText} from "@/components/permissions-button";
+import { sampleWalks } from "@/components/sample-walks";
+import { WalkDetailsScreen } from "@/components/WalkDetailsScreen";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
