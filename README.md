@@ -39,19 +39,12 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 > Location access requires foreground permission. Android and iOS also request background location permission when you start a walk.
 
 ## Using on Mobile
-<<<<<<< HEAD
-=======
 
->>>>>>> 4c40f31e4daa441458db5aed07293fe2dc272176
 1. Download Expo Go App and sign in with the same email you used for GitHub/VsCode.
 2. Make sure your mobile device and the enviornment(computer used to run this program) you used to set up is connected to the same wifi.
 3. Run npx expo start in terminal.
 4. Scroll until you see the QR code, scan it with your phone camera, and viola! App
-<<<<<<< HEAD
-should be running on your phone.
-=======
    should be running on your phone.
->>>>>>> 4c40f31e4daa441458db5aed07293fe2dc272176
 
 ## Manual Checks
 
