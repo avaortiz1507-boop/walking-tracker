@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
-import { Button, StyleSheet } from "react-native";
+import { Alert, Button, StyleSheet } from "react-native";
 import { SavedWalk } from "./sample-walks";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
@@ -10,9 +10,16 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
   // Builds a Google Maps URL from the walk's starting coordinates and opens it, but only after checking the device can handle the link.
   const openMaps = async () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${walk.startLatitude},${walk.startLongitude}`;
-    // Check if the device can open the URL before attempting to open it.
-    if (await Linking.canOpenURL(url)) {
-      await Linking.openURL(url);
+    try {
+      // Check if the device can open the URL before attempting to open it.
+      if (await Linking.canOpenURL(url)) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Unable to open the maps app. Please try again on a device with a compatible maps app.");
+      }
+    } catch {
+      // A failed open must not crash the app.
+      Alert.alert("Unable to open the maps app. Please try again on a device with a compatible maps app.");
     }
   };
 
