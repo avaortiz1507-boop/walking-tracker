@@ -15,16 +15,25 @@ function handleDeepLink(url: string) {
   try {
     //splits the URL into its components and extracts the path
     //for example, walkingtracker://walk/2 will have path "walk/2"
-    const { path } = Linking.parse(url);
+    const { scheme, hostname, path } = Linking.parse(url);
+
+    // Custom schemes parse differently than http: in mywalks://walk/1, "walk"
+    // lands in the hostname and only "1" in the path. On web, the whole
+    // "walk/1" is the path. Normalize both into one "walk/1" string.
+    const isCustomScheme = scheme === "mywalks" || scheme === "walkingtracker";
+    const normalized = isCustomScheme
+      ? [hostname, path].filter(Boolean).join("/")
+      : (path ?? "");
+
     //matches the path against the pattern "walk/{id}" to extract the walk ID
-    const match = path?.match(/^walk\/(.+)$/);
+    const match = normalized.match(/^walk\/(.+)$/);
     //if the path matches the pattern, match[1] will contain the walk ID
     if (match) {
       router.push(`/walk/${match[1]}`);
       return;
     }
     // if the path is just "walk" with no ID, show an alert
-    if (path === "walk" || path === "walk/") {
+    if (normalized === "walk" || normalized === "walk/") {
       Alert.alert("A walk ID is required.");
       // if the link is invalid or doesn't include an ID, show an alert
     } else {
