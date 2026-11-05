@@ -58,12 +58,13 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 - [React Native](https://reactnative.dev/)
 - `expo-location`
 - `expo-task-manager`
+- `expo-linking`
 
 ## Privacy
 
 The app reads your location when you request your current position. During an active walk, it records latitude, longitude, and timestamps. Recorded points are stored locally on the device. Pause or stop tracking to end location collection for the walk.
 
-## Edit 10/26/26 Testing Newly Added Timers and Goal Notifications
+# Edit 10/26/26 Testing Newly Added Timers and Goal Notifications
 
 1. Approve notification permission and confirm that the status message changes.
    Yes. I have approved permission on mobile device. Remembers permissions.
@@ -107,7 +108,42 @@ The third biggest challenge was that Expo Go App decided to update to SDK versio
 while my VsCode was still on 57.0.0 so I was getting annoyed as to why my code suddenly
 stopped working or was showing red lines. Thats when I asked AI to help me solve the issue, and it did.
 
-## Deep Links
+
+# 11/5/26 Deep Links
+
+## Schemes
+Computer(web):http://localhost:8081/walk/1
+iPhone: mywalks://walk/1
+Android: walkingtracker://walk/1
+Expo Go: exp://10.0.0.200:8081/--/walk/1
+
+## Valid Deep Link Example
+
+```
+mywalks://walk/1
+```
+
+Opens the app to the Walk Details screen for walk 1 (October 1, 2026 at 10:00 AM,
+47.6062, -122.3321, Completed).
+
+## Invalid Deep Link Examples
+
+```
+mywalks://walk/999     → Walk not found. Please check the walk ID.
+mywalks://walk/        → A walk ID is required.
+mywalks://banana       → This link cannot be opened by the Mobile Walking Tracker.
+```
+
+## How to Test the Deep Link
+
+- **Web:** run `npx expo start`, then open `http://localhost:8081/walk/1` in a browser.
+- **Expo Go (iPhone):** run `npx expo start --tunnel`, then put
+  `exp://<tunnel-url>/--/walk/1` in the Notes app and tap it (Safari blocks typed
+  custom schemes, and Expo Go only registers the `exp://` scheme).
+- **Standalone build:** `mywalks://walk/1` works once the app is installed as a
+  development build (EAS Build), which registers the custom scheme with iOS.
+
+## Deep Links Situations
 1. A valid deep link opens the correct saved walk.
 Yes, this works. This is what handleDeepLink() does in src/components/WalkDetailsScreen.tsx.
 2. A deep link works while the app is already open.
@@ -131,3 +167,12 @@ Yes, this works.
 10. The app continues running after an external action fails.
 Yes, this works. This is used for the Maps, the OpenStreetMap and handleDeepLink as to not
 crash the app.
+
+## Problems Encountered
+
+1. **First adding the deep link** After completed steps 1-5, I was stumped on step 6. I didn't know what to do, so I looked on Google and asked CoPilot for help. Luckily, they were both able to help and from starting the project all the way to the end, it was making sense.
+2. **/walk/2 kept closing and redirecting to the Home tab.** At first, whenever I tried out http://localhost:8081/walk/2, it automatically closed itself out. What I found out was that the tab navigator only recognizes its own tabs, so /walk/2 had nowhere to render. AI was able to fix it by turning the walk tab into a stack (walk/_layout.tsx) with the tracker as index and [id].tsx pushing on top.
+
+
+![Project Screenshot](src/app/images/Screenshot_5-11-2026_01616_www.google.com.jpeg)
+![Project Screenshot](src/app/images/Screenshot_5-11-2026_0164_localhost.jpeg)
