@@ -30,15 +30,27 @@ function subscribe(listener: () => void) {
 
 function update(patch: Partial<State>) {
   state = { ...state, ...patch };
-  if (patch.records) AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(state.records));
+  if (patch.records) {
+    AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(state.records)).catch((err) =>
+      console.error("Failed to save records:", err)
+    );
+  }
   listeners.forEach((l) => l());
 }
 
 // Skipped during Expo's static web render, where `window` doesn't exist.
 if (typeof window !== "undefined") {
-  AsyncStorage.getItem(RECORDS_KEY).then((saved) => {
-    if (saved) update({ records: JSON.parse(saved) });
-  });
+  AsyncStorage.getItem(RECORDS_KEY)
+    .then((saved) => {
+      if (saved) {
+        try {
+          update({ records: JSON.parse(saved) });
+        } catch (err) {
+          console.error("Failed to parse saved records:", err);
+        }
+      }
+    })
+    .catch((err) => console.error("Failed to load records:", err));
 }
 
 function addRecords(locations: Location.LocationObject[]) {
@@ -99,17 +111,27 @@ async function stopUpdates() {
 
 async function startTracking() {
   const fg = await Location.requestForegroundPermissionsAsync();
-  if (fg.status !== "granted") return false;
+  if (fg.status !== "granted") {
+    return false;
+  }
 
   if (Platform.OS !== "web") {
     const bg = await Location.requestBackgroundPermissionsAsync();
-    if (bg.status !== "granted") return false;
+    if (bg.status !== "granted") {
+      return false;
+    }
   }
 
-  update({ records: [] });
-  await startUpdates();
-  update({ status: "tracking" });
-  return true;
+  try {
+    update({ records: [] });
+    await startUpdates();
+    update({ status: "tracking" });
+    return true;
+  } catch (err) {
+    console.error("Failed to start tracking:", err);
+    update({ status: "idle" });
+    return false;
+  }
 }
 
 async function pauseTracking() {

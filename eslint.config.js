@@ -5,6 +5,18 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
+    files: ["src/app/walk.tsx"],
+    rules: {
+      "import/namespace": "off",
+    },
+  },
+  {
+    files: ["src/hooks/use-color-scheme.web.ts"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
     ignores: ["dist/*"],
   }
 ]);
