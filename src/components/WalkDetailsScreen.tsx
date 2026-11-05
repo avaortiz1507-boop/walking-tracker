@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
+import { useState } from "react";
 import { Alert, Button, StyleSheet } from "react-native";
 import { SavedWalk } from "./sample-walks";
 import { ThemedText } from "./themed-text";
@@ -7,9 +8,13 @@ import { ThemedView } from "./themed-view";
 
 
 export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
+  // Shown while an external map action is being opened.
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+
   // Builds a Google Maps URL from the walk's starting coordinates and opens it, but only after checking the device can handle the link.
   const openMaps = async () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${walk.startLatitude},${walk.startLongitude}`;
+    setLoadingMessage("Opening the starting location in Maps...");
     try {
       // Check if the device can open the URL before attempting to open it.
       if (await Linking.canOpenURL(url)) {
@@ -20,14 +25,17 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
     } catch {
       // A failed open must not crash the app.
       Alert.alert("Unable to open the maps app. Please try again on a device with a compatible maps app.");
+    } finally {
+      setLoadingMessage(null);
     }
   };
 
-  // Opens a web-based map (OpenStreetMap) in the device's browser using thewalk's starting coordinates.
+  // Opens a web-based map (OpenStreetMap) in the device's browser using the walk's starting coordinates.
   const openWebLocation = async () => {
     const url = `https://www.openstreetmap.org/?mlat=${walk.startLatitude}&mlon=${walk.startLongitude}#map=16/${walk.startLatitude}/${walk.startLongitude}`;
+    setLoadingMessage("Opening the starting location in your browser...");
     try {
-        // Check if the device can open the URL before attempting to open it.
+      // Check if the device can open the URL before attempting to open it.
       if (await Linking.canOpenURL(url)) {
         await Linking.openURL(url);
       } else {
@@ -35,11 +43,10 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
       }
     } catch {
       Alert.alert("Unable to open the location in a web browser.");
+    } finally {
+      setLoadingMessage(null);
     }
   };
-
-
-  
 
   return (
     <ThemedView style={styles.container}>
@@ -52,6 +59,7 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
       <ThemedText>Status: {walk.status}</ThemedText>
       <Button title="Open Starting Location in Maps" onPress={openMaps} />
       <Button title="View Location on the Web" onPress={openWebLocation} />
+      {loadingMessage && <ThemedText>{loadingMessage}</ThemedText>}
     </ThemedView>
   );
 };
