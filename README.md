@@ -106,3 +106,15 @@ The second biggest challenge was how can I make an ID for the pause reminder? Lu
 The third biggest challenge was that Expo Go App decided to update to SDK version 58.0.0
 while my VsCode was still on 57.0.0 so I was getting annoyed as to why my code suddenly
 stopped working or was showing red lines. Thats when I asked AI to help me solve the issue, and it did.
+
+## Deep Links
+1. A valid deep link opens the correct saved walk.
+2. A deep link works while the app is already open.
+3. A deep link works while the app is running in the background.
+4. A deep link works when the app is completely closed.
+5. A deep link with an invalid walk ID is handled safely.
+6. A deep link with a missing walk ID is handled safely.
+7. The Maps button uses the selected walk's coordinates.
+8. The web map button uses the selected walk's coordinates.
+9. The app displays an error message when an action cannot be opened.
+10. The app continues running after an external action fails.
