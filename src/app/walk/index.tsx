@@ -83,6 +83,7 @@ export default function WalkScreen() {
     null,
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [expoPushToken, setExpoPushToken] = useState("");
   const [channels, setChannels] = useState<Notifications.NotificationChannel[]>(
     [],
@@ -92,6 +93,13 @@ export default function WalkScreen() {
   >(undefined);
 
   useEffect(() => {
+    // A link like http://localhost:8081/walk/ or mywalks://walk/ has no walk
+    // ID. The trailing slash means someone asked for a walk but didn't say
+    // which one, so show the missing-ID message.
+    if (Platform.OS === "web" && window.location.pathname.endsWith("/walk/")) {
+      setLinkError("A walk ID is required.");
+    }
+
     async function getCurrentLocation() {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -155,6 +163,7 @@ export default function WalkScreen() {
       style={{ flex: 1 }}
       contentContainerStyle={styles.container}
     >
+      {linkError && <Text style={styles.linkError}>{linkError}</Text>}
          <Text>Your expo push token: {expoPushToken}</Text>
       <Text>{`Channels: ${JSON.stringify(
         channels.map(c => c.id),
@@ -188,6 +197,12 @@ export default function WalkScreen() {
 }
 
 const styles = StyleSheet.create({
+  linkError: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 12,
+  },
   container: {
     flexGrow: 1,
     alignItems: "center",

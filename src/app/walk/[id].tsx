@@ -15,7 +15,7 @@ export default function WalkDetailsRoute() {
   const walk = sampleWalks.find((w) => w.id === id);
 
   if (!walk) {
-    return <ThemedText>No walk found with ID: {id}</ThemedText>;
+    return <ThemedText>Walk not found. Please check the walk ID.</ThemedText>;
   }
 
   return <WalkDetailsScreen walk={walk} />;
