@@ -1,5 +1,6 @@
 import PermissionsButton, {PauseWalkButton,ResumeWalkButton,StopWalkButton,WalkStatusText,WalkGoalText,PauseReminderText} from "@/components/permissions-button";
 import { sampleWalks } from "@/components/sample-walks";
+import WalkMap from "@/components/walk-map";
 import { WalkDetailsScreen } from "@/components/WalkDetailsScreen";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
@@ -174,6 +175,7 @@ export default function WalkScreen() {
       <PauseWalkButton title="Pause Walk" />
       <ResumeWalkButton title="Resume Walk" />
       <StopWalkButton title="Stop Walk" />
+      <WalkMap />
       <WalkStatusText />
       <WalkGoalText />
       <PauseReminderText />
