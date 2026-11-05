@@ -23,6 +23,24 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
     }
   };
 
+  // Opens a web-based map (OpenStreetMap) in the device's browser using thewalk's starting coordinates.
+  const openWebLocation = async () => {
+    const url = `https://www.openstreetmap.org/?mlat=${walk.startLatitude}&mlon=${walk.startLongitude}#map=16/${walk.startLatitude}/${walk.startLongitude}`;
+    try {
+        // Check if the device can open the URL before attempting to open it.
+      if (await Linking.canOpenURL(url)) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Unable to open the location in a web browser.");
+      }
+    } catch {
+      Alert.alert("Unable to open the location in a web browser.");
+    }
+  };
+
+
+  
+
   return (
     <ThemedView style={styles.container}>
       <Button title="Back" onPress={() => router.replace("/walk")} />
@@ -33,6 +51,7 @@ export const WalkDetailsScreen = ({ walk }: { walk: SavedWalk }) => {
       <ThemedText>Starting Longitude: {walk.startLongitude}</ThemedText>
       <ThemedText>Status: {walk.status}</ThemedText>
       <Button title="Open Starting Location in Maps" onPress={openMaps} />
+      <Button title="View Location on the Web" onPress={openWebLocation} />
     </ThemedView>
   );
 };
