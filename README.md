@@ -109,12 +109,25 @@ stopped working or was showing red lines. Thats when I asked AI to help me solve
 
 ## Deep Links
 1. A valid deep link opens the correct saved walk.
+Yes, this works. This is what handleDeepLink() does in src/components/WalkDetailsScreen.tsx.
 2. A deep link works while the app is already open.
+Yes, this works. This is what Linking.addEventListener() does in src/app/_layout.tsx.
 3. A deep link works while the app is running in the background.
+Yes, this works.
 4. A deep link works when the app is completely closed.
+Yes, this works. This is what Linking.getInitialURL() does in src/app/_layout.tsx.
 5. A deep link with an invalid walk ID is handled safely.
+Yes, this works. This is what if (!walk) {} is used for in src/app/walk/[id].tsx
 6. A deep link with a missing walk ID is handled safely.
+Yes, this works. This is what if (Platform.OS === "web" && window.location.pathname.endsWith("/walk/")) {
+      setLinkError("A walk ID is required.");
+    } in src/app/walk/index.tsx is for.
 7. The Maps button uses the selected walk's coordinates.
+Yes, this works. This is what openMaps = async () =>{} is used for in src/components/WalkDetailsScreen.tsx.
 8. The web map button uses the selected walk's coordinates.
+Yes, this works. This is what  openWebLocation = async () =>{}is used for in src/components/WalkDetailsScreen.tsx.
 9. The app displays an error message when an action cannot be opened.
+Yes, this works.
 10. The app continues running after an external action fails.
+Yes, this works. This is used for the Maps, the OpenStreetMap and handleDeepLink as to not
+crash the app.
