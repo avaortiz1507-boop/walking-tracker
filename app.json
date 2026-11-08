@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "scheme": "mywalks",
+      "scheme": "mywalks"
     },
     "android": {
       "adaptiveIcon": {
