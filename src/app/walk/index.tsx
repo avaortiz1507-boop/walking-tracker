@@ -84,7 +84,6 @@ export default function WalkScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // saves the permission status and other related states
   const [permissionStatus, setPermissionStatus] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -108,8 +107,13 @@ export default function WalkScreen() {
 
     // if permission is granted, we can proceed to get the current location
     if (status === "granted") {
-      const location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      try {
+        const location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
+      } catch {
+        // Location temporarily unavailable (GPS off, no fix yet, etc.)
+        setLocation(null);
+      }
     }
     // Update the status message based on the permission status
     if (status === "granted") {
@@ -181,17 +185,13 @@ export default function WalkScreen() {
     setupNotification();
   }, []);
 
-  let text = "Waiting...";
-  if (errorMsg) {
-    text = errorMsg;
-  } else if (location) {
-    const { latitude, longitude } = location?.coords ?? {
-      latitude: "N/A",
-      longitude: "N/A",
-    };
-
-    text = `Latitude: ${latitude}, Longitude: ${longitude}`;
-  }
+  // Derive coordinates from the current location if available.
+  const coords = location
+    ? {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      }
+    : null;
 
   return (
     <ScrollView
@@ -212,11 +212,26 @@ export default function WalkScreen() {
       {statusMessage !== "" && (
         <Text style={styles.paragraph}>{statusMessage}</Text>
       )}
-      <WalkMap />
+      {/* Display current coordinates if available */}
+      {coords ? (
+        <>
+          <Text style={styles.paragraph}>
+            Current Latitude: {coords.latitude}
+          </Text>
+          <Text style={styles.paragraph}>
+            Current Longitude: {coords.longitude}
+          </Text>
+        </>
+      ) : (
+        <Text style={styles.paragraph}>
+          Current location is unavailable. Please check your device's location
+          settings and try again.
+        </Text>
+      )}
+      <WalkMap coords={coords} />
       <WalkStatusText />
       <WalkGoalText />
       <PauseReminderText />
-      <Text style={styles.paragraph}>{text}</Text>
       <View style={{ alignItems: 'center', justifyContent: 'center' }}>
         {/* hide button on web platform */}
         {Platform.OS !== "web" && (
