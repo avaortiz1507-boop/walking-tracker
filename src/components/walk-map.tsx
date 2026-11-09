@@ -1,9 +1,13 @@
 import { StyleSheet, View } from "react-native";
 import MapView, { Circle, Marker, Polyline } from "react-native-maps";
+import { useRoute } from "./tracking-walks";
 
 type Coords = { latitude: number; longitude: number };
 
 export default function WalkMap({ coords }: { coords: Coords | null }) {
+  // The walked route, recorded by the tracking buttons in permissions-button.
+  const route = useRoute();
+
   // centers the map for the user
   const region = {
     latitude: coords?.latitude ?? 37.78825,

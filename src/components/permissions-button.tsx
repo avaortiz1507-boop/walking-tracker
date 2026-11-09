@@ -1,33 +1,28 @@
 import { ThemedText } from "@/components/themed-text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants, { ExecutionEnvironment } from "expo-constants";
-import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import * as TaskManager from "expo-task-manager";
 import { useSyncExternalStore } from "react";
 import { Button, Platform, StyleSheet, View } from "react-native";
 
-const LOCATION_TASK_NAME = "background-location-task";
+import StartWalkButton from "./start-walk-button";
+import {
+  setOnGoalReached,
+  setWalkStatus,
+  startUpdates,
+  stopUpdates,
+  useElapsedSeconds,
+  useWalkStatus,
+  WALK_GOAL_SECONDS,
+} from "./tracking-walks";
 
-// Web has no background location task, and Expo Go doesn't include the iOS background-location
-// Info.plist keys (it throws "NSLocation*UsageDescription must be present"). Both track in the
-// foreground with watchPositionAsync instead. Development builds use the background task.
-const foregroundOnly =
-  Platform.OS === "web" ||
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+// Re-export so existing imports of "PermissionsButton" (the Start Walk button)
+// keep working now that the start logic lives in its own component file.
+export default StartWalkButton;
 
-// three statuses
-type WalkStatus = "idle" | "tracking" | "paused";
-
-//every button shares one status.
-let walkStatus: WalkStatus = "idle";
+// Local listener set for the pause reminder message, which is separate from
+// the walk-tracking store's listeners.
 const listeners = new Set<() => void>();
-// Used when foregroundOnly. watchPositionAsync returns a LocationSubscription, and calling
-// .remove() on it is the only way to pause or stop. Otherwise we stop LOCATION_TASK_NAME.
-let webLocationSubscription: Location.LocationSubscription | null = null;
 
-// used to let parts of your app "listen" for changes, such as when it starts, pauses, or stops tracking
-// Example usage: const status = useWalkStatus();
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => {
@@ -35,86 +30,12 @@ function subscribe(listener: () => void) {
   };
 }
 
-// useSyncExternalStore is used to read data outside of React(location updates) and subscribe to changes in walk status
-// The third argument is the server snapshot, used when Expo renders the web page statically.
-const useWalkStatus = () =>
-  useSyncExternalStore(
-    subscribe,
-    () => walkStatus,
-    () => "idle" as WalkStatus,
-  );
-
-//start foreground location tracking once and avoid creating duplicate location listeners.
-async function startUpdates() {
-  if (foregroundOnly) {
-    if (!webLocationSubscription) {
-      webLocationSubscription = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced },
-        (location) => console.log("foreground location", location),
-      );
-    }
-    return;
-  }
-
-  await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-    accuracy: Location.Accuracy.Balanced,
-  });
-}
-
-// stops location updates for both web and mobile
-async function stopUpdates() {
-  if (foregroundOnly) {
-    webLocationSubscription?.remove();
-    webLocationSubscription = null;
-    return;
-  }
-
-  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)) {
-    await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-  }
-}
-
-//starts a new walk
-const startWalk = async () => {
-  const { status: foregroundStatus } =
-    await Location.requestForegroundPermissionsAsync();
-
-  if (foregroundStatus !== "granted") {
-    return;
-  }
-
-  if (!foregroundOnly) {
-    const { status: backgroundStatus } =
-      await Location.requestBackgroundPermissionsAsync();
-
-    if (backgroundStatus !== "granted") {
-      return;
-    }
-  }
-
-  await startUpdates();
-  // a new walking session, so the goal notification can be sent again
-  setNotificationSent(false);
-  setWalkStatus("tracking");
-};
-
-// Part 6 Simple Walking Goal
-// goal of 60 seconds on tracking screen
-const WALK_GOAL_SECONDS = 60;
-
-// Seconds walked so far. The timer runs only while tracking, keeps its value when paused,
-// and resets when the walk stops.
-let elapsedSeconds = 0;
-let walkTimer: ReturnType<typeof setInterval> | null = null;
-// Remembers whether the goal notification was already sent, so its used once per walk
-let goalNotificationSent = false;
-//Set the variable to true after sending the notification.
-function setNotificationSent(sent: boolean) {
-  goalNotificationSent = sent;
+function notifyListeners() {
+  listeners.forEach((l) => l());
 }
 
 // Part 7/8 Send a Goal Notification and prevent duplicates
-// called by the timer once the walker reaches the goal
+// called by the store's goal timer once the walker reaches the goal
 function notifyGoalReached() {
   if (Platform.OS === "web") return;
   Notifications.getPermissionsAsync().then(({ status }) => {
@@ -129,48 +50,12 @@ function notifyGoalReached() {
   });
 }
 
-//updates walk status from resume, pause and stop. actual data
-function setWalkStatus(next: WalkStatus) {
-  walkStatus = next;
-
-  // tracking mode: start the timer if tracking, stop it otherwise
-  if (next === "tracking") {
-    if (!walkTimer) {
-      walkTimer = setInterval(() => {
-        // continuously adds one second until paused or stopped
-        elapsedSeconds += 1;
-        listeners.forEach((l) => l());
-        if (elapsedSeconds >= WALK_GOAL_SECONDS && !goalNotificationSent) {
-          notifyGoalReached();
-          // when true, mark the notification as sent so it won't be sent again
-          setNotificationSent(true);
-        }
-      }, 1000);
-    }
-  } else {
-    if (walkTimer) {
-      clearInterval(walkTimer);
-      walkTimer = null;
-    }
-    // starts over if the walk is idle and there is no ongoing walk
-    if (next === "idle") {
-      elapsedSeconds = 0;
-      // if goalNotificationSent is false, the goal notification can be sent again
-      // in the next walk because the previous walk has ended
-      goalNotificationSent = false;
-    }
-  }
-
-  listeners.forEach((l) => l());
-}
+// Register the goal handler with the store so its timer can fire it.
+setOnGoalReached(notifyGoalReached);
 
 // shows the 60 second goal and how many seconds have been walked
 export const WalkGoalText = () => {
-  const seconds = useSyncExternalStore(
-    subscribe,
-    () => elapsedSeconds,
-    () => 0,
-  );
+  const seconds = useElapsedSeconds();
   return (
     <View>
       <ThemedText>Goal: {WALK_GOAL_SECONDS} seconds</ThemedText>
@@ -190,7 +75,7 @@ let reminderMessage = "";
 
 function setReminderMessage(next: string) {
   reminderMessage = next;
-  listeners.forEach((l) => l());
+  notifyListeners();
 }
 
 // Reuses the stored ID if there is one, otherwise generates a new one.
@@ -279,10 +164,11 @@ const resumeWalk = async () => {
   await cancelPauseReminders();
 };
 
-// button to stop walk, only enabled when walk status is not idle
+// button to stop walk, only enabled when a walk is being tracked or paused
 const stopWalk = async () => {
   await stopUpdates();
-  setWalkStatus("idle");
+  // "stopped" (not "idle") so the status text can show "Walk Stopped".
+  setWalkStatus("stopped");
   setReminderMessage("");
   await cancelPauseReminders();
 };
@@ -295,24 +181,6 @@ export const PauseReminderText = () => {
     () => "",
   );
   return message ? <ThemedText>{message}</ThemedText> : null;
-};
-
-// button to start walk, only enabled when walk status is idle
-const PermissionsButton = ({ title }: { title?: string | null }) => {
-  const status = useWalkStatus();
-  return (
-    <View style={styles.container}>
-      <Button
-        onPress={startWalk}
-        disabled={status !== "idle"}
-        title={
-          title !== null && title !== undefined
-            ? title
-            : `Enable ${Platform.OS === "web" ? "foreground" : "background"} location`
-        }
-      />
-    </View>
-  );
 };
 
 // button to pause walk, only enabled when walk status is tracking
@@ -343,36 +211,31 @@ export const ResumeWalkButton = ({ title }: { title?: string }) => {
   );
 };
 
-// button to stop walk, only enabled when walk status is not idle
+// button to stop walk, only enabled when a walk is being tracked or paused
 export const StopWalkButton = ({ title }: { title?: string }) => {
   const status = useWalkStatus();
   return (
     <View style={styles.container}>
       <Button
         onPress={stopWalk}
-        disabled={status === "idle"}
+        disabled={status === "idle" || status === "stopped"}
         title={title ?? "Stop Walk"}
       />
     </View>
   );
 };
 
+// Shows the tracking status using the exact labels the assignment requires.
 export const WalkStatusText = () => {
   const status = useWalkStatus();
-  return <ThemedText>Walk status: {status}</ThemedText>;
+  const label =
+    status === "tracking" || status === "paused"
+      ? "Tracking"
+      : status === "stopped"
+        ? "Walk Stopped"
+        : "Not Tracking";
+  return <ThemedText>Tracking Status: {label}</ThemedText>;
 };
-
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error) {
-    // Error occurred - check `error.message` for more details.
-    return;
-  }
-  if (data) {
-    const { locations } = data as { locations: Location.LocationObject[] };
-    // do something with the locations captured in the background
-    console.log(locations);
-  }
-});
 
 const styles = StyleSheet.create({
   container: {
@@ -381,5 +244,3 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
 });
-
-export default PermissionsButton;
