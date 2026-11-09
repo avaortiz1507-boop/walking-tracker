@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { Button, Platform, StyleSheet, View } from "react-native";
 
 import StartWalkButton from "./start-walk-button";
+import StopWalkButton from "./stop-walk-button";
 import {
   setOnGoalReached,
   setWalkStatus,
@@ -16,8 +17,9 @@ import {
 } from "./tracking-walks";
 
 // Re-export so existing imports of "PermissionsButton" (the Start Walk button)
-// keep working now that the start logic lives in its own component file.
+// and "StopWalkButton" keep working now that they live in their own files.
 export default StartWalkButton;
+export { StopWalkButton };
 
 // Local listener set for the pause reminder message, which is separate from
 // the walk-tracking store's listeners.
@@ -78,6 +80,11 @@ function setReminderMessage(next: string) {
   notifyListeners();
 }
 
+// Exported so the Stop Walk button can clear any visible pause reminder.
+export function clearReminderMessage() {
+  setReminderMessage("");
+}
+
 // Reuses the stored ID if there is one, otherwise generates a new one.
 export const generateNotificationId = async () => {
   const id = await AsyncStorage.getItem(PAUSE_REMINDER_KEY);
@@ -111,7 +118,8 @@ export const schedulePauseReminder = async (
 let webReminderActive = false;
 
 // Cancels the scheduled pause reminder by its saved ID, then clears the ID.
-async function cancelPauseReminders() {
+// Exported so the Stop Walk button can cancel reminders when a walk ends.
+export async function cancelPauseReminders() {
   if (Platform.OS === "web") {
     if (webReminderActive) {
       webReminderActive = false;
@@ -164,15 +172,6 @@ const resumeWalk = async () => {
   await cancelPauseReminders();
 };
 
-// button to stop walk, only enabled when a walk is being tracked or paused
-const stopWalk = async () => {
-  await stopUpdates();
-  // "stopped" (not "idle") so the status text can show "Walk Stopped".
-  setWalkStatus("stopped");
-  setReminderMessage("");
-  await cancelPauseReminders();
-};
-
 // text to display reminder message when walk is paused
 export const PauseReminderText = () => {
   const message = useSyncExternalStore(
@@ -206,20 +205,6 @@ export const ResumeWalkButton = ({ title }: { title?: string }) => {
         onPress={resumeWalk}
         disabled={status !== "paused"}
         title={title ?? "Resume Walk"}
-      />
-    </View>
-  );
-};
-
-// button to stop walk, only enabled when a walk is being tracked or paused
-export const StopWalkButton = ({ title }: { title?: string }) => {
-  const status = useWalkStatus();
-  return (
-    <View style={styles.container}>
-      <Button
-        onPress={stopWalk}
-        disabled={status === "idle" || status === "stopped"}
-        title={title ?? "Stop Walk"}
       />
     </View>
   );

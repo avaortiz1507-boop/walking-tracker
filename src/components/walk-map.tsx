@@ -20,6 +20,9 @@ export default function WalkMap({ coords }: { coords: Coords | null }) {
     <View style={styles.container}>
       <MapView style={styles.map} initialRegion={region} region={region}>
         {coords && <Marker coordinate={coords} title="You are here" />}
+        {/* Draw the walked route once at least two points exist. The route
+            is never cleared on stop, so it stays visible after the walk ends. */}
+        {route.length > 1 && <Polyline coordinates={route} strokeWidth={4} />}
       </MapView>
     </View>
   );
