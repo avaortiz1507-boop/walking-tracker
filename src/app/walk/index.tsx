@@ -5,7 +5,8 @@ import { WalkDetailsScreen } from "@/components/WalkDetailsScreen";
 import Constants from "expo-constants";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View, Button } from "react-native";
 
 Notifications.setNotificationHandler({
@@ -84,6 +85,9 @@ export default function WalkScreen() {
     null,
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // saves the permission status and other related states
+  const [permissionStatus, setPermissionStatus] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [expoPushToken, setExpoPushToken] = useState("");
   const [channels, setChannels] = useState<Notifications.NotificationChannel[]>(
@@ -92,6 +96,38 @@ export default function WalkScreen() {
   const [notification, setNotification] = useState<
     Notifications.Notification | undefined
   >(undefined);
+
+  // Request location permission and handle the result
+  const requestLocationPermission = useCallback(async (): Promise<void> => {
+    // If permission was already decided, the OS won't show the prompt again —
+    // requestForegroundPermissionsAsync just returns the saved status.
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    // result of the permission request is stored in the status variable
+    setPermissionStatus(status);
+
+    // if permission is granted, we can proceed to get the current location
+    if (status === "granted") {
+      const location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    }
+    // Update the status message based on the permission status
+    if (status === "granted") {
+      setStatusMessage("Location permission approved.");
+    } else {
+      setStatusMessage(
+        "Location permission denied. Location access is required to display your position and track your walking route.",
+      );
+    }
+  }, []);
+
+  // Tab screens stay mounted, so re-check the permission every time this
+  // screen gains focus — otherwise a changed/denied status never shows.
+  useFocusEffect(
+    useCallback(() => {
+      requestLocationPermission();
+    }, [requestLocationPermission]),
+  );
 
   useEffect(() => {
     // A link like http://localhost:8081/walk/ or mywalks://walk/ has no walk
@@ -102,19 +138,17 @@ export default function WalkScreen() {
     }
 
     async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== "granted") {
-        setErrorMsg("Permission to access location was denied");
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({});
       console.log(location);
       const { latitude, longitude } = location.coords;
       console.log(latitude, longitude);
       setLocation(location);
     }
-    
 
     async function setupNotification() {
       registerForPushNotificationsAsync().then(
@@ -175,6 +209,9 @@ export default function WalkScreen() {
       <PauseWalkButton title="Pause Walk" />
       <ResumeWalkButton title="Resume Walk" />
       <StopWalkButton title="Stop Walk" />
+      {statusMessage !== "" && (
+        <Text style={styles.paragraph}>{statusMessage}</Text>
+      )}
       <WalkMap />
       <WalkStatusText />
       <WalkGoalText />
