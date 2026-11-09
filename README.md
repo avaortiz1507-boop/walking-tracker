@@ -12,6 +12,7 @@ A mobile walking tracker built with Expo and React Native. Check your current lo
 - Request permission to display notifications
 - Pausing timer to remind
 - Walking goal of 60 seconds with a notification once you walked for 60 seconds
+- 
 
 ## Get Started
 
@@ -30,11 +31,15 @@ npx expo start
 Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a platform.
 
 ## Using the Tracker
+## Testing Location Changes
 
-1. Select **Get Current Location** to view your coordinates.
-2. Select **Start Walk** and grant the requested location permissions.
-3. Use **Pause** and **Resume** to control tracking during your walk.
-4. Select **Stop** to finish. Recorded points appear in the list.
+- **Physical device:** Start a walk and physically move. `watchPositionAsync` with
+  balanced accuracy fires on significant movement, so walk around the block rather
+  than pacing in one room.
+- **Android Emulator:** ⋮ (Extended controls) → Location → set or route coordinates.
+- **iOS Simulator:** Features → Location → Custom Location or a simulated route.
+- Each new location becomes a route point; the route line appears after at least
+  two points are recorded.
 
 > Location access requires foreground permission. Android and iOS also request background location permission when you start a walk.
 
@@ -59,6 +64,7 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 - `expo-location`
 - `expo-task-manager`
 - `expo-linking`
+-`react-native-maps expo-location`
 
 ## Privacy
 
@@ -176,3 +182,98 @@ crash the app.
 
 ![Project Screenshot](src/app/images/Screenshot_5-11-2026_01616_www.google.com.jpeg)
 ![Project Screenshot](src/app/images/Screenshot_5-11-2026_0164_localhost.jpeg)
+
+# 11/8/26
+Test the following situations and document the results in your README:
+
+1. Approve location permission.
+✔
+2. Confirm that the permission-approved message appears.
+✔
+3. Deny location permission.
+✔
+4. Confirm that the permission-denied message appears.
+✔
+5. Confirm that the app continues running after permission is denied.
+✔
+6. Confirm that the current location appears on the map.
+✔
+7. Confirm that the destination marker appears. (optional)
+🗙 optional
+8. Confirm that the destination circle appears. (optional)
+🗙 optional
+9. Confirm that the destination name and radius appear. (optional)
+🗙 optional
+10. Start a walk and change the device's location.
+✔
+11. Confirm that new route points are recorded.
+✔
+12. Confirm that a route line appears after multiple points are recorded.
+✔
+13. Stop the walk.
+✔
+14. Confirm that no new route points are added after stopping.
+✔
+15. Confirm that the completed route remains visible.
+✔
+16. Move from outside the destination area to inside the area. (optional)
+🗙 optional
+17. Confirm that one Entered event is created. (optional)
+🗙 optional
+18. Remain inside the destination area. (optional)
+🗙 optional
+19. Confirm that duplicate Entered events are not created. (optional)
+🗙 optional
+20. Move from inside the destination area to outside the area. (optional)
+🗙 optional
+21. Confirm that one Exited event is created. (optional)
+🗙 optional
+22. Remain outside the destination area. (optional)
+🗙 optional
+23. Confirm that duplicate Exited events are not created. (optional)
+🗙 optional
+24. Confirm that the event log includes dates and times. (optional)
+🗙 optional
+25. Confirm that the app does not crash if location data is unavailable.
+✔
+
+## Map and Destination Features
+
+The Walk Map screen displays an interactive map (react-native-maps) centered on the
+user's current location with a "You are here" marker. While a walk is being tracked,
+the app records each new location as a route point and draws the walked route on the
+map as a polyline. The completed route stays visible after the walk is stopped.
+
+The destination feature (destination marker, geofence circle, and Entered/Exited
+event log) was implemented as optional extra credit work.
+
+- **Selected destination:** Tacoma Dome
+- **Destination radius:** 100 meters
+- **How the coordinates were selected:** The Tacoma Dome (47.2367, -122.4275) is a
+  well-known public landmark near my testing location, chosen instead of a private
+  residential address. The 100-meter radius was chosen to make enter/exit testing
+  easy on foot; a larger radius can be used for emulator testing.
+
+
+## Problems Encountered
+
+1. **Map crashed on web** — `react-native-maps` is native-only and crashed the web
+   build with `codegenNativeComponent is not a function`. Fixed by adding a
+   platform-specific `walk-map.web.tsx` fallback, which Metro automatically picks
+   for web builds.
+2. **Permission prompt never appeared on Expo Go** — the OS had saved my earlier
+   denial, so `requestForegroundPermissionsAsync` silently returned the old status.
+   Fixed by resetting Expo Go's location permission in the phone settings, and by
+   re-checking the permission every time the screen gains focus (`useFocusEffect`)
+   since tab screens stay mounted.
+3. **"Cannot find native module 'ExpoAsset'" crash** — a stale copy of old tracking
+   code (`walk.ts`) had been left inside the `app/` routes folder, and Expo Router
+   tried to load it as a screen at startup. Deleting the stray file fixed the crash.
+4. **Metro "unknown module" errors after adding files** — caused by Metro's cached
+   module graph. Fixed by restarting with `npx expo start --clear`.
+
+## Screenshots
+
+![The Walk Map showing location permission approved](src/app/images/Screenshot_8-11-2026_215441_localhost.jpeg)
+![The Walk Map screen showing the current location](src/app/images/Screenshot_8-11-2026_22512_localhost.jpeg)
+![The map showing a recorded route ](src/app/images/tracker%20walker.png)

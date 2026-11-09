@@ -199,6 +199,7 @@ export default function WalkScreen() {
       contentContainerStyle={styles.container}
     >
       {linkError && <Text style={styles.linkError}>{linkError}</Text>}
+      <Text style={styles.heading}>Walk Map</Text>
          <Text>Your expo push token: {expoPushToken}</Text>
       <Text>{`Channels: ${JSON.stringify(
         channels.map(c => c.id),
@@ -251,6 +252,12 @@ export default function WalkScreen() {
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 12,
+  },
   linkError: {
     fontSize: 18,
     fontWeight: "bold",
