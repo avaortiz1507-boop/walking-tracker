@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type Note = {
   id: string;
@@ -14,13 +14,15 @@ export default function WalkNotesScreen() {
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [status, setStatus] = useState("No actions yet.");
+  // Loading previously saved notes from AsyncStorage 
+  useEffect(() => {loadNotes();}, []);
 
   const MAX_LENGTH = 200;
   // function to check if note exceeds max length
   const isNoteTooLong = (note: string) => note.length > MAX_LENGTH;
 
   // function to save a note to the list of notes
-  const saveNote = () => {
+  const saveNote = async () => {
 
     // function to remove the extra spaces from the note before processing it
  const trimmedNote = note.trim();
@@ -45,13 +47,43 @@ export default function WalkNotesScreen() {
       syncStatus: "pending",
     };
 
-    // Add note to list
-    setNotes([...notes, newNote]);
 
-    setStatus("Note saved successfully!");
+    // add the new note to the list of notes
+    const updatedNotes = [...notes, newNote];
+    try {
+      // Update state so the note appears immediately
+      setNotes(updatedNotes);
+
+    // Save notes to AsyncStorage
+    await AsyncStorage.setItem(
+      "walkNotes",
+      // converts the updated notes array to a JSON string for storage
+      JSON.stringify(updatedNotes)
+    );
+
+    // Clear the input field after saving the note
     setNote("");
+
+    setStatus("Note saved on this device.");
+  } catch (error) {
+    setStatus("Cannot save note.");
+    console.error(error);
+  }
   };
 
+
+  // loading notes from AsyncStorage
+  const loadNotes = async () => {
+  try {
+    const storedNotes = await AsyncStorage.getItem("walkNotes");
+    // if the notes are found, convert them from JSON and set the state
+    if (storedNotes) {
+      setNotes(JSON.parse(storedNotes));
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
   // syncing notes
   const syncNow = () => {
     setStatus("Sync completed.");
