@@ -8,6 +8,7 @@ import * as Notifications from "expo-notifications";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View, Button } from "react-native";
+import WalkNotesScreen from "../walk-notes";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -210,6 +211,7 @@ export default function WalkScreen() {
       <PauseWalkButton title="Pause Walk" />
       <ResumeWalkButton title="Resume Walk" />
       <StopWalkButton title="Stop Walk" />
+      <WalkNotesScreen />
       {statusMessage !== "" && (
         <Text style={styles.paragraph}>{statusMessage}</Text>
       )}
