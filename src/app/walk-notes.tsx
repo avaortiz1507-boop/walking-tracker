@@ -10,7 +10,7 @@ type Note = {
 };
 
 export default function WalkNotesScreen() {
- // different states for managing walk notes, input, and status messages
+  // different states for managing walk notes, input, and status messages
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [status, setStatus] = useState("No actions yet.");
@@ -90,117 +90,135 @@ export default function WalkNotesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.leftPanel}>
-        <Text style={styles.heading}>Walk Notes</Text>
+    <FlatList
+      data={notes}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        <View style={styles.inputSection}>
+          <Text style={styles.heading}>Walk Notes</Text>
 
-        <Text style={styles.counter}>
-          {note.length} / {MAX_LENGTH} characters
-        </Text>
+          <Text style={styles.counter}>
+            {note.length} / {MAX_LENGTH} characters
+          </Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter a note about your walk"
-          value={note}
-          onChangeText={setNote}
-          multiline
-          maxLength={MAX_LENGTH} // Enforces limit at input level
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter a note about your walk"
+            value={note}
+            onChangeText={setNote}
+            multiline
+            maxLength={MAX_LENGTH} // Enforces limit at input level
+          />
 
-        <Button title="Save Note" onPress={saveNote} />
+          <Button title="Save Note" onPress={saveNote} />
 
-        <View style={{ marginTop: 10 }}>
-          <Button title="Sync Now" onPress={syncNow} />
+          <View style={{ marginTop: 10 }}>
+            <Button title="Sync Now" onPress={syncNow} />
+          </View>
+
+          <Text style={styles.status}>
+            Status: {status}
+          </Text>
         </View>
+      }
+      renderItem={({ item: note }) => (
+        <View style={styles.noteCard}>
+          <Text style={styles.noteText}>
+            {note.text}
+          </Text>
 
-        <Text style={styles.status}>
-          Status: {status}
-        </Text>
-      </View>
+          <Text style={styles.noteMeta}>
+            Created: {note.createdAt}
+          </Text>
 
-      <View style={styles.rightPanel}>
-        <Text style={styles.heading}>Walk Notes</Text>
+          <Text style={styles.noteMeta}>
+            Status: {note.syncStatus}
+          </Text>
 
-        <FlatList
-          data={notes}
-          // item represents each note in the list
-          keyExtractor={(item) => item.id}
-          renderItem={({ item: note }) => (
-            <View style={styles.noteCard}>
-              <Text style={styles.noteText}>
-                {note.text}
-              </Text>
-
-              <Text style={styles.noteMeta}>
-                Created: {note.createdAt}
-              </Text>
-
-              <Text style={styles.noteMeta}>
-                Status: {note.syncStatus}
-              </Text>
-
-              <Text style={styles.noteMeta}>
-                ID: {note.id}
-              </Text>
-            </View>
-          )}
-        />
-      </View>
-    </View>
+          <Text style={styles.noteMeta}>
+            ID: {note.id}
+          </Text>
+        </View>
+      )}
+      contentContainerStyle={styles.container}
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No notes yet. Add your first note above!</Text>
+        </View>
+      }
+    />
   );
-  // FlatList is to display the list of items(notes)
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    flexDirection: "row",
-    padding: 20,
+    padding: 16,
+    paddingBottom: 20,
   },
-  leftPanel: {
-    flex: 1,
-    marginRight: 20,
-  },
-  rightPanel: {
-    flex: 1,
-    borderLeftWidth: 1,
-    borderLeftColor: "#ccc",
-    paddingLeft: 20,
+  inputSection: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    textAlign: "center",
   },
   heading: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 16,
+    color: "#333",
+    textAlign: "center",
+  },
+  counter: {
+    marginBottom: 12,
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginBottom: 15,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
     minHeight: 100,
     textAlignVertical: "top",
+    fontSize: 16,
+    backgroundColor: "#f9f9f9",
   },
   status: {
-    marginTop: 15,
-  },
-  counter: {
-    marginBottom: 8,
+    marginTop: 12,
     fontSize: 14,
     color: "#555",
+    fontStyle: "italic",
   },
   noteCard: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: "#fafafa",
   },
   noteText: {
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: 15,
+    marginBottom: 8,
+    color: "#333",
+    lineHeight: 22,
   },
   noteMeta: {
     fontSize: 12,
-    color: "gray",
+    color: "#999",
+    marginBottom: 4,
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
   },
 });

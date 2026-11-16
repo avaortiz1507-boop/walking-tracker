@@ -1,6 +1,6 @@
 # Walking Tracker
 
-A mobile walking tracker built with Expo and React Native. Check your current location, record a walk, and review its saved location points. Added pause reminders and notifications when reaches a walking goal.
+A mobile walking tracker built with Expo and React Native. Check your current location, record a walk, and review its saved location points. Added pause reminders and notifications when reaches a walking goal. Lets you write notes and save them locally with AsyncStorage without an internet connection. Saved notes are loaded when the screen opens.
 
 ## Features
 
@@ -65,6 +65,7 @@ Open the app in Expo Go or an emulator. Use the Expo CLI prompts to select a pla
 - `expo-task-manager`
 - `expo-linking`
 -`react-native-maps expo-location`
+- `@react-native-async-storage/async-storage`
 
 ## Privacy
 
@@ -277,3 +278,72 @@ event log) was implemented as optional extra credit work.
 ![The Walk Map showing location permission approved](src/app/images/Screenshot_8-11-2026_215441_localhost.jpeg)
 ![The Walk Map screen showing the current location](src/app/images/Screenshot_8-11-2026_22512_localhost.jpeg)
 ![The map showing a recorded route ](src/app/images/tracker%20walker.png)
+
+## 11/15/26
+Test the following situations and document the results in your README:
+
+1. A blank note is not saved.
+✔
+2. A note containing only spaces is not saved.
+✔
+3. A valid note can be created without internet access.
+✔
+4. A new note immediately displays Pending Sync.
+
+5. Multiple notes can be stored locally.
+✔
+6. The newest notes appear first.
+🗙 optional
+7. Notes remain available after the app is closed and reopened.
+🗙 optional
+8. Saved sync statuses remain correct after the app is reopened.
+🗙 optional
+9. The note counts display the correct totals.
+🗙 optional
+10. The Sync Now button processes only pending notes.
+🗙 optional
+11. A successful sync changes pending notes to Synced.
+🗙 optional
+12. The successful sync message displays the correct number of notes.
+🗙 optional
+13. Synced notes are not processed again.
+🗙 optional
+14. A failed sync keeps notes in the sync queue.
+🗙 optional
+15. A failed sync does not delete notes.
+🗙 optional
+16. A failed sync can be retried.
+🗙 optional
+17. The app handles an empty sync queue.
+🗙 optional
+18. The app displays a helpful message if local storage fails.
+🗙 optional
+
+## ## Walk Notes sync status
+This app uses a simulated sync, which means it practices sending the notes to a server
+to save but it doesnt send anything. Only for demonstration.
+In theory, pending sync means that the notes are waiting to be sync to the server, which
+is what the Sync Now button does. I havent actually inmplemented the syncing so the button
+doesnt do anything.
+Sync would mean that the syncing was completed and now you can see all the notes you
+have saved.
+
+## How to create an offline note
+
+1. Open the app and go to **Walk Notes**. Wait for any saved notes to load.
+2. Disconnect the device from Wi-Fi and mobile data.
+3. Enter a note of up to 200 characters and select **Save Note**.
+4. Check for "Note saved on this device." and the new note in the list.
+
+For testing after closing and reopening the app offline, use an installed
+standalone build. Expo Go normally needs a connection to the development server
+to load the app.
+
+## Problems Encountered
+
+1. **Having to change the whole layout for mobile** Building the app went pretty smoothly and I didn't have any major issues but once I got to the end, I realized that the application only looked good on web. I finally used Expo Go App and saw that the app looked horrible. You couldn't see the input boxes correctly because they were too large so I asked ai what was wrong and it said it was because of the Flatlist. So now it runs great on both mobile and web.
+
+## Screenshots
+![Notes automatically saying pending when syncing](src/app/images/pending%20sync.png)
+![Notes still saving even when exiting out of app](src/app/images/note%20saves%20even%20when%20exit%20out%20of%20app.png)
+![Notes still showing even with no internet](src/app/images/note%20is%20saved%20with%20no%20wifi.png)
