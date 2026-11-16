@@ -2,11 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 import { useState } from 'react';
 
-export default function WalkNotesScreen(){
+type Note = {
+  id: string;
+  text: string;
+  createdAt: string;
+  syncStatus: string;
+};
 
-    // different states for managing walk notes, input, and status messages
+export default function WalkNotesScreen() {
+ // different states for managing walk notes, input, and status messages
   const [note, setNote] = useState("");
-  const [notes, setNotes] = useState<string[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [status, setStatus] = useState("No actions yet.");
 
   const MAX_LENGTH = 200;
@@ -19,19 +25,29 @@ export default function WalkNotesScreen(){
     // function to remove the extra spaces from the note before processing it
  const trimmedNote = note.trim();
 
-  if (trimmedNote === "") {
-    setStatus("Please enter a note before saving.");
-    return;
-  }
+    // Check for empty note
+    if (trimmedNote === "") {
+      setStatus("Please enter a note before saving.");
+      return;
+    }
 
-
+    // Check for max length
     if (isNoteTooLong(trimmedNote)) {
-    setStatus(`Your note must be 200 characters or fewer.`);
-    return;
-  }
+      setStatus(`Note cannot exceed ${MAX_LENGTH} characters.`);
+      return;
+    }
 
-    // add the new note to the list of notes
-    setNotes([...notes, trimmedNote]);
+    // Creates a new note object
+    const newNote: Note = {
+      id: Date.now().toString(),
+      text: trimmedNote,
+      createdAt: new Date().toLocaleString(),
+      syncStatus: "pending",
+    };
+
+    // Add note to list
+    setNotes([...notes, newNote]);
+
     setStatus("Note saved successfully!");
     setNote("");
   };
@@ -41,49 +57,68 @@ export default function WalkNotesScreen(){
     setStatus("Sync completed.");
   };
 
-return (
-  <View style={styles.container}>
-    <View style={styles.leftPanel}>
-      <Text style={styles.heading}>Walk Notes</Text>
+  return (
+    <View style={styles.container}>
+      <View style={styles.leftPanel}>
+        <Text style={styles.heading}>Walk Notes</Text>
 
-      <Text style={styles.counter}>
-        {note.length} / {MAX_LENGTH} characters
-      </Text>
+        <Text style={styles.counter}>
+          {note.length} / {MAX_LENGTH} characters
+        </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter a note about your walk"
-        value={note}
-        onChangeText={setNote}
-        multiline
-        maxLength={MAX_LENGTH} // Enforces limit at input level
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Enter a note about your walk"
+          value={note}
+          onChangeText={setNote}
+          multiline
+          maxLength={MAX_LENGTH} // Enforces limit at input level
+        />
 
+        <Button title="Save Note" onPress={saveNote} />
 
-      <Button title="Save Note" onPress={saveNote} />
-      <Button title="Sync Now" onPress={syncNow} />
+        <View style={{ marginTop: 10 }}>
+          <Button title="Sync Now" onPress={syncNow} />
+        </View>
 
-      <Text style={styles.status}>
-        Status: {status}
-      </Text>
+        <Text style={styles.status}>
+          Status: {status}
+        </Text>
+      </View>
+
+      <View style={styles.rightPanel}>
+        <Text style={styles.heading}>Walk Notes</Text>
+
+        <FlatList
+          data={notes}
+          // item represents each note in the list
+          keyExtractor={(item) => item.id}
+          renderItem={({ item: note }) => (
+            <View style={styles.noteCard}>
+              <Text style={styles.noteText}>
+                {note.text}
+              </Text>
+
+              <Text style={styles.noteMeta}>
+                Created: {note.createdAt}
+              </Text>
+
+              <Text style={styles.noteMeta}>
+                Status: {note.syncStatus}
+              </Text>
+
+              <Text style={styles.noteMeta}>
+                ID: {note.id}
+              </Text>
+            </View>
+          )}
+        />
+      </View>
     </View>
-
-    <View style={styles.rightPanel}>
-       <Text style={styles.heading}>Walk Notes</Text>
-
-
-      <FlatList
-        data={notes}
-        keyExtractor={(_, index) => index.toString()}
-        renderItem={({ item }) => (
-          <Text style={styles.noteItem}>{item}</Text>
-        )}
-      />
-    </View>
-  </View>
-);
-// FlatList is to display the list of items(notes)
+  );
+  // FlatList is to display the list of items(notes)
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -116,13 +151,24 @@ const styles = StyleSheet.create({
   status: {
     marginTop: 15,
   },
-  noteItem: {
-    paddingVertical: 5,
-  },
-    counter: {
-    marginTop: 8,
+  counter: {
+    marginBottom: 8,
     fontSize: 14,
-    color: '#555',
-    textAlign: 'center',
+    color: "#555",
+  },
+  noteCard: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  noteText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  noteMeta: {
+    fontSize: 12,
+    color: "gray",
   },
 });
