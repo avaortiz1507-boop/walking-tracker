@@ -9,11 +9,19 @@ export default function WalkNotesScreen(){
   const [notes, setNotes] = useState<string[]>([]);
   const [status, setStatus] = useState("No actions yet.");
 
+  const MAX_LENGTH = 200;
+  // function to check if note exceeds max length
+  const isNoteTooLong = (note: string) => note.length > MAX_LENGTH;
+
   // function to save a note to the list of notes
   const saveNote = () => {
     // if note is empty, it asks to enter a note
     if (note.trim() === "") {
       setStatus("Please enter a note.");
+      return;
+    }
+    if (isNoteTooLong(note)) {
+      setStatus(`Note is too long. Maximum length is ${MAX_LENGTH} characters.`);
       return;
     }
 
@@ -33,12 +41,19 @@ return (
     <View style={styles.leftPanel}>
       <Text style={styles.heading}>Walk Notes</Text>
 
+      <Text style={styles.counter}>
+        {note.length} / {MAX_LENGTH} characters
+      </Text>
+
       <TextInput
         style={styles.input}
-        placeholder=""
+        placeholder="Enter a note about your walk"
         value={note}
         onChangeText={setNote}
+        multiline
+        maxLength={MAX_LENGTH} // Enforces limit at input level
       />
+
 
       <Button title="Save Note" onPress={saveNote} />
       <Button title="Sync Now" onPress={syncNow} />
@@ -90,11 +105,19 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     padding: 10,
     marginBottom: 15,
+    minHeight: 100,
+    textAlignVertical: "top",
   },
   status: {
     marginTop: 15,
   },
   noteItem: {
     paddingVertical: 5,
+  },
+    counter: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
   },
 });
