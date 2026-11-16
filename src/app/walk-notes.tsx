@@ -15,18 +15,23 @@ export default function WalkNotesScreen(){
 
   // function to save a note to the list of notes
   const saveNote = () => {
-    // if note is empty, it asks to enter a note
-    if (note.trim() === "") {
-      setStatus("Please enter a note.");
-      return;
-    }
-    if (isNoteTooLong(note)) {
-      setStatus(`Note is too long. Maximum length is ${MAX_LENGTH} characters.`);
-      return;
-    }
+
+    // function to remove the extra spaces from the note before processing it
+ const trimmedNote = note.trim();
+
+  if (trimmedNote === "") {
+    setStatus("Please enter a note before saving.");
+    return;
+  }
+
+
+    if (isNoteTooLong(trimmedNote)) {
+    setStatus(`Your note must be 200 characters or fewer.`);
+    return;
+  }
 
     // add the new note to the list of notes
-    setNotes([...notes, note]);
+    setNotes([...notes, trimmedNote]);
     setStatus("Note saved successfully!");
     setNote("");
   };
